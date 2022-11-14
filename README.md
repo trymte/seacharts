@@ -1,3 +1,6 @@
+# SimSeaCharts
+A simulator based on the SeaCharts API
+
 # SeaCharts
 Python-based API for Electronic Navigational Charts (ENC)
 
