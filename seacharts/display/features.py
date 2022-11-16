@@ -184,26 +184,27 @@ class FeaturesManager:
                 vessel_horizons = spl.Shape.collect(
                     [v['ship'].horizon for v in self._vessels.values()]
                 )
-                static = geometry.difference(safe_area.geometry)
-                dynamic = geometry.intersection(vessel_horizons)
-                if not (static.is_empty and dynamic.is_empty):
-                    self._hazards[color] = self.new_artist(
-                        static.union(dynamic), color_picker(color)
-                    )
-                    if self.show_arrows:
-                        arrow, length1 = None, -1
-                        if not static.is_empty:
-                            arrow1, length1 = self.closest(ownship, static)
-                            static_points[i] = arrow1.exterior.coords[0]
-                            arrow = arrow1
-                        if not dynamic.is_empty:
-                            arrow2, length2 = self.closest(ownship, dynamic)
-                            dynamic_points[i] = arrow2.exterior.coords[0]
-                            if arrow is None or length2 < length1:
-                                arrow = arrow2
-                        self._arrows[color] = self.new_artist(
-                            arrow, color_picker('orange')
+                if safe_area is not None:
+                    static = geometry.difference(safe_area.geometry)
+                    dynamic = geometry.intersection(vessel_horizons)
+                    if not (static.is_empty and dynamic.is_empty):
+                        self._hazards[color] = self.new_artist(
+                            static.union(dynamic), color_picker(color)
                         )
+                        if self.show_arrows:
+                            arrow, length1 = None, -1
+                            if not static.is_empty:
+                                arrow1, length1 = self.closest(ownship, static)
+                                static_points[i] = arrow1.exterior.coords[0]
+                                arrow = arrow1
+                            if not dynamic.is_empty:
+                                arrow2, length2 = self.closest(ownship, dynamic)
+                                dynamic_points[i] = arrow2.exterior.coords[0]
+                                if arrow is None or length2 < length1:
+                                    arrow = arrow2
+                            self._arrows[color] = self.new_artist(
+                                arrow, color_picker('orange')
+                            )
             utils.files.write_rows_to_csv(
                 static_points, utils.files.path.static
             )
