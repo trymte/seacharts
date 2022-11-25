@@ -7,7 +7,7 @@ from multiprocessing import Process
 from typing import List, Tuple
 
 import matplotlib.pyplot as plt
-import seacharts.environment as env
+import simcharts.environment as env
 from cartopy.crs import UTM
 from matplotlib.gridspec import GridSpec
 
