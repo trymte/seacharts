@@ -1,5 +1,5 @@
 # SimSeaCharts
-A simulator based on the SeaCharts API
+A ROS2 powered simulator, forked from SeaCharts
 
 # SeaCharts
 Python-based API for Electronic Navigational Charts (ENC)
@@ -9,6 +9,14 @@ Python-based API for Electronic Navigational Charts (ENC)
 [![python version](https://img.shields.io/badge/python-3.9-blue)]()
 [![license](https://img.shields.io/badge/license-MIT-green)]()
 
+## SeaCharts authors
+Simon Blindheim
+simon.blindheim@ntnu.no
+
+Trym Tengesdal
+trym.tengesdal@ntnu.no
+
+Forked from [Trym Tengesdals updated version][https://github.com/trymte/seacharts], which is based on [Simon Blindheims original version][https://github.com/simbli/seacharts]
 
 ![](https://github.com/simbli/seacharts/blob/master/images/example1.svg?raw=True
 "Example visualization with demonstration shapes")
@@ -27,7 +35,7 @@ Python-based API for Electronic Navigational Charts (ENC)
 This module follows the [PEP8](https://www.python.org/dev/peps/pep-0008/)
 convention for Python code.
 
-## Prerequisites
+<!-- ## Prerequisites
 
 ### Anaconda
 
@@ -118,7 +126,7 @@ or locally inside the seacharts root folder as an editable package with `pip ins
 This module supports reading and processing `FGDB` files for sea depth data
 such as the Norwegian coastal data set used for demonstration purposes, found
 [here](
-https://kartkatalog.geonorge.no/metadata/2751aacf-5472-4850-a208-3532a51c529a).
+https://kartkatalog.geonorge.no/metadata/2751aacf-5472-4850-a208-3532a51c529a). -->
 
 ### Downloading regional datasets
 
@@ -334,6 +342,7 @@ produced by a separate and independent simulation or optimization algorithm.
 
 - Simon Blindheim ([simon.blindheim@ntnu.no](mailto:simon.blindheim@ntnu.no))
 - Trym Tengesdal ([trym.tengesdal@ntnu.no](mailto:trym.tengesdal@ntnu.no))
+- Simon Lexau ([simon.lexau@ntnu.no](mailto:simon.lexau@ntnu.no))
 
 
 ## License

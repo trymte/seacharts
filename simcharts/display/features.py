@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-import seacharts.display as dis
-import seacharts.spatial as spl
-import seacharts.utils as utils
+import simcharts.display as dis
+import simcharts.spatial as spl
+import simcharts.utils as utils
 from cartopy.feature import ShapelyFeature
 
 from .colors import color_picker

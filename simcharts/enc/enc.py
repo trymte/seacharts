@@ -2,9 +2,9 @@ from pathlib import Path
 from typing import Any, List, Optional, Tuple, Union
 
 import matplotlib
-import seacharts.display as dis
-import seacharts.environment as env
-import seacharts.utils as utils
+import simcharts.display as dis
+import simcharts.environment as env
+import simcharts.utils as utils
 
 
 class ENC:

@@ -3,8 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import List
 
-import seacharts.spatial as spl
-import seacharts.utils as utils
+import simcharts.spatial as spl
+import simcharts.utils as utils
 
 from .extent import Extent
 

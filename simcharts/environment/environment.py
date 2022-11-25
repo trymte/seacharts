@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import seacharts.spatial as spl
+import simcharts.spatial as spl
 
 from .extent import Extent
 from .scope import Scope

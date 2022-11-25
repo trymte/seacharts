@@ -5,7 +5,7 @@ from abc import ABC
 from dataclasses import InitVar, dataclass, field
 from typing import Dict, List
 
-import seacharts.environment.scope as env
+import simcharts.environment.scope as env
 
 from .base import Layer
 from .layers import Land, Seabed, Shore

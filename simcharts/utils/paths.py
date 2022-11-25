@@ -1,8 +1,9 @@
 import pathlib
 
 # Defines (hard-coded paths to relevant files)
-root = pathlib.Path(__file__).parents[2]
-package = root / 'seacharts'
+ros2_ws = pathlib.Path(__file__).parents[5]
+root = ros2_ws / 'src' / 'simcharts'
+package = root / 'simcharts'
 
 config = package / 'config.yaml'
 config_schema = package / 'config_schema.yaml'
