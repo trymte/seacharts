@@ -1,6 +1,7 @@
 import matplotlib.colors as clr
 import matplotlib.pyplot as plt
 import numpy as np
+import random
 from matplotlib.cm import ScalarMappable
 
 
@@ -50,6 +51,8 @@ _layer_colors = dict(
     blank=('#ffffffff', '#ffffffff'),
 )
 
+def get_random_color():
+    return random.choice(list(_ship_colors.values()))
 
 def color_picker(name, bins=None):
     if isinstance(name, int):

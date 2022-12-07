@@ -21,7 +21,9 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'simcharts = simcharts.launchSimCharts:main'
+            'simcharts = simcharts.launch_simcharts:main',
+            'local_traffic_node = simcharts.launch_local_traffic_node:main',
+            'dev_test = simcharts.devTest:main'
         ],
     },
 )

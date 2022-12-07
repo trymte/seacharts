@@ -1,8 +1,10 @@
 
 enc:
-  utm_zone: 33
+  utm_zone: 32
   size: [900.0, 506.20]                                                  # width, height (east, north) window to consider map data from. Unit is distance in meters
+  # size: [8900.0, 4506.20]                                                  # width, height (east, north) window to consider map data from. Unit is distance in meters
   origin: [569042.27, 7034900.20]                                            # easting/northing origin (UTM zone 33N) as an example
+  # origin: [567850.06, 7033924.84]                                            # easting/northing origin (UTM zone 33N) as an example
   # origin: [44300.0, 6956450.0]                                            # easting/northing origin (UTM zone 33N) as an example
   buffer: 0                                                               # int of dilation or erosion distance for geometries
   tolerance: 0                                                            # int of maximum tolerance distance for geometries
@@ -14,6 +16,8 @@ enc:
   border: false                                                           # bool for showing a border around the environment plot
   verbose: true                                                           # bool for status printing during geometry processing
   #origin_lla: [62.457464, 6.146678]                                       # origin in latitude longitude (degrees) for transformation purposes (NOT IMPLEMENTED YET)
+  sim_callback_time: 5
+  local_traffic_publish_timer: 0.01
 
 display:
   dpi: 96
@@ -22,3 +26,7 @@ display:
   fullscreen_mode: false
   colorbar_mode: true
   dark_mode: false
+  draw_names: false # Buggy
+
+ais:
+  timer_period: 10

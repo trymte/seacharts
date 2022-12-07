@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from rclpy.node import Node
 import datetime
 import time
 import tkinter as tk
@@ -24,12 +25,14 @@ class Display:
         ('bottom_left', 'bottom', 'bottom_right'),
     )
 
-    def __init__(self, settings: dict, environment: env.Environment = None):
+    def __init__(self, settings: dict, environment: env.Environment = None, node: Node = None):
         if environment is None:
             self.environment = env.Environment()
         else:
             self.environment = environment
+        self.node = node
         self.crs = UTM(settings['enc']['utm_zone'])
+        self.draw_names = settings['display']['draw_names']
 
         self._background = None
         self.anchor_index = self._init_anchor_index(settings)
@@ -91,6 +94,8 @@ class Display:
             wspace=2 * width_space / axes1_width,
         )
         subplot_spacing = sub1, sub2
+        # enable interactive mode
+        plt.ion()
         figure = plt.figure('SeaCharts', figsize=figure_sizes[0], dpi=self._dpi)
         if not self._fullscreen_mode:
             figure.canvas.toolbar.pack_forget()
@@ -109,7 +114,6 @@ class Display:
         return axes1, gs, cb
 
     def start_visualization_loop(self):
-        print()
         self.show(0.1)
         start_time = time.time()
         while True:
@@ -122,18 +126,40 @@ class Display:
                 self.terminate()
                 print()
                 return
-            self.features.update_vessels()
+            self.features.update_vessels_from_file()
             self.update_plot()
             time.sleep(0.1)
 
-    def refresh_vessels(self, poses: List[Tuple]):
+    def refresh_vessels(self, vessels, size, origin):
+        '''
+        Refreshes the vessels in the environment
+
+        In: 
+            vessels: (Vessel[]) List of Vessel messages
+        '''
+        if vessels != {}: self.features.update_vessels(vessels, size, origin)
+
+    def refresh_vessels_from_file(self, poses: List[Tuple]):
         self.features.vessels_to_file(poses)
-        self.features.update_vessels()
+        self.features.update_vessels_from_file()
         self.update_plot()
 
     def update_plot(self):
         self.figure.canvas.restore_region(self._background)
+        self.node.get_logger().debug("Updating entire plot")
         self.draw_animated_artists()
+
+    def update_static_plot(self):
+        self.figure.canvas.restore_region(self._background)
+        self.node.get_logger().debug("Updating static plot")
+        self.draw_animated_static()
+
+    def update_vessels_plot(self):
+        self.figure.canvas.restore_region(self._background)
+        self.node.get_logger().debug("Updating vessels plot")
+        self.draw_animated_vessels()
+        if self.draw_names:
+            self.draw_animated_vessels_text()
 
     def draw_plot(self):
         try:
@@ -145,6 +171,33 @@ class Display:
 
     def draw_animated_artists(self):
         for artist in self.features.animated:
+            self.axes.draw_artist(artist)
+        try:
+            self.figure.canvas.blit()
+            self.figure.canvas.flush_events()
+        except tk.TclError:
+            plt.close()
+
+    def draw_animated_static(self):
+        for artist in self.features.animatedStatic:
+            self.axes.draw_artist(artist)
+        try:
+            self.figure.canvas.blit()
+            self.figure.canvas.flush_events()
+        except tk.TclError:
+            plt.close()
+
+    def draw_animated_vessels(self):
+        for artist in self.features.animatedVessels:
+            self.axes.draw_artist(artist)
+        try:
+            self.figure.canvas.blit()
+            self.figure.canvas.flush_events()
+        except tk.TclError:
+            plt.close()
+
+    def draw_animated_vessels_text(self):
+        for artist in self.features.animatedVesselsText:
             self.axes.draw_artist(artist)
         try:
             self.figure.canvas.blit()
@@ -240,15 +293,20 @@ class Display:
             self.features.update_ownship()
             if self.environment.safe_area:
                 self.features.update_hazards()
-        try:
-            plt.pause(duration)
-        except tk.TclError:
-            plt.close()
+        # try:
+        #     print(f"B0: {duration}")
+        #     plt.pause(duration)
+        #     print("B")
+        # except tk.TclError:
+        #     plt.close()
+        # print("B1")
+        
 
     @staticmethod
     def terminate():
         plt.close()
 
     @staticmethod
-    def init_multiprocessing():
-        Process(target=Display).start()
+    def init_multiprocessing(display):
+        print("Initializing multiprocessing environment")
+        Process(target=display.start_visualization_loop).start()

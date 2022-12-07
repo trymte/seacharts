@@ -1,13 +1,17 @@
-from pathlib import Path
-from typing import Any, List, Optional, Tuple, Union
-
+from typing import Any, List, Tuple, Union
+import rclpy
+from rclpy.node import Node
+import datetime
 import matplotlib
 import simcharts.display as dis
 import simcharts.environment as env
-import simcharts.utils as utils
+from simcharts.utils.helper import *
+from simcharts.nodes import LocalTrafficSubscriber
+from simcharts_interfaces.msg import Point, Polygon
+from simcharts_interfaces.srv import GetStaticObstacles
 
 
-class ENC:
+class ENC(Node):
     """Electronic Navigational Charts
 
     Reads and extracts features from a user-specified region of spatial data
@@ -32,19 +36,26 @@ class ENC:
         :param verbose: bool for status printing during geometry processing
     """
 
-    def __init__(self, config_file: Path = utils.paths.config, multiprocessing=False, **kwargs):
+    def __init__(self, config, executor=None, cli_args=None, multiprocessing=False, **kwargs):
+        super().__init__('simcharts__node', cli_args=cli_args)
         matplotlib.use("TkAgg")
-        if multiprocessing:
-            dis.Display.init_multiprocessing()
-            return
+        
+        self.local_traffic = {}
 
-        self._cfg = utils.config.ENCConfig(config_file, **kwargs)
-
+        self.executor = executor
+        self._cfg = config
+        self.sim_callback_time = self._cfg.settings['enc']['sim_callback_time']
+        
         self._environment = env.Environment(self._cfg.settings)
         self.land = self._environment.topography.land
         self.shore = self._environment.topography.shore
         self.seabed = self._environment.hydrography.bathymetry
-        self._display = dis.Display(self._cfg.settings, self._environment)
+        self._display = dis.Display(self._cfg.settings, self._environment, self)
+
+
+        self.local_traffic_subscriber = LocalTrafficSubscriber()
+        self.srv_callback_group = rclpy.callback_groups.ReentrantCallbackGroup()
+        self.static_obstacles_srv = self.create_service(GetStaticObstacles, 'simcharts__get_static_obstacles', self._get_static_obstacles_callback, callback_group=self.srv_callback_group)
 
     @property
     def size(self) -> Tuple[int, int]:
@@ -77,6 +88,45 @@ class ENC:
         """Return the supported feature layers."""
         return self._environment.supported_layers
 
+    def updateLocalTraffic(self):
+        rclpy.spin_once(self.local_traffic_subscriber, executor=self.executor, timeout_sec=0.01)
+        new_traffic = self.local_traffic_subscriber.get_local_traffic()
+        if new_traffic != {}:
+            self.local_traffic = new_traffic
+
+    def timerCallbackGetLocalTraffic(self):
+        self.get_logger().info('Timer expired, getting local traffic')
+        self.sendRequestGetLocalTraffic()
+
+    def start_sim(self, executor, duration: float = 0.0) -> None:
+        """
+        Show a Matplotlib display window of a maritime environment.
+        :param duration: optional int for window pause duration
+        :return: None
+        """
+        self.executor = executor
+        self.executor.add_node(self)
+        self.get_logger().debug("Simulation started")
+        t_start = datetime.datetime.now().timestamp()
+        t_i = datetime.datetime.now().timestamp()
+        t_i_plus_1 = datetime.datetime.now().timestamp() + 5000
+        self.updateLocalTraffic()
+        self._display.refresh_vessels(self.local_traffic, self.size, self.origin)
+        self._display.update_static_plot()
+        self._display.update_vessels_plot()
+        while True:
+            rclpy.spin_once(self, executor=self.executor, timeout_sec=0.01)
+            self._display.update_vessels_plot()
+            delta_t = t_i_plus_1 - t_i
+            if delta_t >= self.sim_callback_time:
+                # rclpy.spin_once(self, executor=self.executor, timeout_sec=0.01)
+                self.updateLocalTraffic()
+                if len(self.local_traffic) > 0:
+                    self._display.refresh_vessels(self.local_traffic, self.size, self.origin)
+                    self.local_traffic = {}
+                t_i = datetime.datetime.now().timestamp()
+            t_i_plus_1 = datetime.datetime.now().timestamp()
+
     def fullscreen_mode(self, arg: bool = True) -> None:
         """
         Enable or disable fullscreen mode view of environment figure.
@@ -106,14 +156,14 @@ class ENC:
         :param args: tuples with id, easting, northing, heading, color
         :return: None
         """
-        self._display.refresh_vessels(list(args))
+        self._display.refresh_vessels_from_file(list(args))
 
     def clear_vessels(self) -> None:
         """
         Remove all vessel features from the environment plot.
         :return: None
         """
-        self._display.refresh_vessels([])
+        self._display.refresh_vessels_from_file([])
 
     def add_ownship(
         self,
@@ -260,14 +310,6 @@ class ENC:
         """
         self._display.features.add_rectangle(center, size, color, rotation, fill, thickness, edge_style)
 
-    def show_display(self, duration: float = 0.0) -> None:
-        """
-        Show a Matplotlib display window of a maritime environment.
-        :param duration: optional int for window pause duration
-        :return: None
-        """
-        self._display.show(duration)
-
     def get_display_handle(self):
         """Returns figure and axes handles to the seacharts display."""
         return self._display.figure, self._display.axes
@@ -301,3 +343,29 @@ class ENC:
         :return: None
         """
         self._display.save_figure(name, scale, extension)
+
+    def _get_static_obstacles_callback(self, request, response) -> None:
+        """
+        Callback function for the static obstacles subscriber.
+        :param msg: ObstacleArray message
+        :return: None
+        """
+        self.get_logger().debug("Sending Static Obstacles...")
+        raw_obstacles = self.land.geometry.__geo_interface__['coordinates']
+        obstacles = []
+        for _pol in raw_obstacles:
+            pol = _pol[0]
+            polygon = Polygon()
+            points = []
+            for p in pol:
+                point = Point()
+                point.x = p[0]
+                point.y = p[1]
+                points.append(point)
+            polygon.polygon = points
+            obstacles.append(polygon)
+        self.get_logger().debug(f"\n\nCLOCK: {self.get_clock().now().to_msg().sec}.{self.get_clock().now().to_msg().nanosec}\n\n")
+        response.timestamp = getTimeStamp(self.get_clock())
+        response.static_obstacles = obstacles
+        self.get_logger().debug("Sent Static Obstacles...")
+        return response

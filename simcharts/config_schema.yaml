@@ -69,6 +69,13 @@ enc:
       maxlength: 2
       schema:
         type: float
+    sim_callback_time:
+      required: True
+      type: float
+    local_traffic_publish_timer:
+      required: True
+      type: float
+      
 display:
   required: True
   type: dict
@@ -91,3 +98,14 @@ display:
     dark_mode:
       required: True
       type: boolean
+    draw_names:
+      required: True
+      type: boolean
+
+ais:
+  required: true
+  type: dict
+  schema:
+    timer_period:
+      required: True
+      type: float

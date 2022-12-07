@@ -1,11 +1,16 @@
 from __future__ import annotations
 
+import numpy as np
+import matplotlib as mpl
+from matplotlib.textpath import TextPath
+from matplotlib.patches import PathPatch
 import simcharts.display as dis
 import simcharts.spatial as spl
 import simcharts.utils as utils
+from simcharts.utils.helper import *
 from cartopy.feature import ShapelyFeature
 
-from .colors import color_picker
+from .colors import color_picker, get_random_color
 
 
 class FeaturesManager:
@@ -36,6 +41,34 @@ class FeaturesManager:
                 self._paths[0].artist, self._paths[1].artist,
                 *[v['artist'] for v in self._vessels.values()],
                 self._ownship,
+            ] if a
+        ]
+
+    @property
+    def animatedStatic(self):
+        return [
+            a for a in [
+                self._horizon,
+                *self._hazards.values(),
+                *self._arrows.values(),
+                self._paths[0].artist, self._paths[1].artist
+            ] if a
+        ]
+
+    @property
+    def animatedVessels(self):
+        return [
+            a for a in [
+                *[v['artist'] for v in self._vessels.values()],
+                self._ownship,
+            ] if a
+        ]
+
+    @property
+    def animatedVesselsText(self):
+        return [
+            a for a in [
+                *[v['text'] for v in self._vessels.values()]
             ] if a
         ]
 
@@ -229,7 +262,47 @@ class FeaturesManager:
         left, right = (x2 - dy, y2 + dx), (x2 + dy, y2 - dx)
         return spl.Shape.arrow_head([(x1, y1), right, left]), shortest.length
 
-    def update_vessels(self):
+    def update_vessels(self, vessels, size, origin):
+        '''
+        Update the vessels on the display.
+
+        In:
+            vessels: (Dict(Vessel)) Dict of Vessel messages
+        '''
+        # if self.show_vessels:
+        new_vessels = {}
+        for vessel in vessels.values():
+            if not isInHorizon(vessel, size, origin): continue
+            ship_id = vessel.id
+            pose = [vessel.x, vessel.y, vessel.heading]
+            if (vessel.heading == None): pose[2] = vessel.cog
+            pose[2] = min(359, abs(pose[2]))
+            pose[2] = max(0, abs(pose[2]))
+            if not self.vesselChanged(ship_id, pose):
+                continue
+            if self.vesselAlreadyExists(ship_id):
+                color = self._vessels[ship_id]['color']
+                scale = self._vessels[ship_id]['scale']
+            else:
+                color = get_random_color()
+                scale = float(np.random.randint(15, 100)) / 80.0 # Divide by 80 as 80 is the default length of the ship
+            kwargs = dict(
+                scale=scale,
+                lon_scale=2.0, # MAGIC NUMBER: Why is this 2.0?
+                lat_scale=1.0, # MAGIC NUMBER: Why is this 1.0?
+            )
+            ship = spl.Ship(*pose, **kwargs)
+            artist = self.new_artist(ship.geometry, color)
+            if self._display.draw_names:
+                tp = TextPath((vessel.x,vessel.y),  vessel.name, size=5*scale)
+                text = self._display.axes.add_patch(PathPatch(tp, color="black"))
+            else:
+                text = None
+
+            new_vessels[ship_id] = dict(ship=ship, artist=artist, color=color, scale=scale, text=text)
+        self.replace_vessels(new_vessels)
+
+    def update_vessels_from_file(self):
         if self.show_vessels:
             entries = list(utils.files.read_ship_poses())
             if entries is not None:
@@ -237,11 +310,16 @@ class FeaturesManager:
                 for ship_details in entries:
                     ship_id = ship_details[0]
                     pose = ship_details[1:4]
-                    other = ship_details[4]
-                    if len(other) > 0 and isinstance(other[0], str):
-                        color = color_picker(other[0])
+                    if not self.vesselChanged(ship_id, pose):
+                        continue
+                    if self.vesselAlreadyExists(ship_id):
+                        color = color_picker(self._vessels[ship_id]['ship']['color'])
                     else:
-                        color = color_picker('red')
+                        other = ship_details[4]
+                        if len(other) > 0 and isinstance(other[0], str):
+                            color = color_picker(other[0])
+                        else:
+                            color = color_picker('red')
                     kwargs = dict(
                         scale=float(other[1]) if len(other) > 1 else 1.0,
                         lon_scale=float(other[2]) if len(other) > 2 else 2.0,
@@ -249,15 +327,27 @@ class FeaturesManager:
                     )
                     ship = spl.Ship(*pose, **kwargs)
                     artist = self.new_artist(ship.geometry, color)
-                    if self._vessels.get(ship_id, None):
-                        self._vessels.pop(ship_id)['artist'].remove()
+                    # if self._vessels.get(ship_id, None):
+                    #     self._vessels.pop(ship_id)['artist'].remove()
                     new_vessels[ship_id] = dict(ship=ship, artist=artist)
                 self.replace_vessels(new_vessels)
 
-    def replace_vessels(self, new_artists):
-        for vessel in self._vessels.values():
-            vessel['artist'].remove()
-        self._vessels = new_artists
+    def vesselChanged(self, ship_id, pose):
+        if ship_id in self._vessels:
+            old_ship = self._vessels[ship_id]['ship']
+            if old_ship.parameters[:3] == pose:
+                return False
+        return True
+
+    def vesselAlreadyExists(self, ship_id): return ship_id in self._vessels
+
+    def replace_vessels(self, new_vessels):
+        for id in new_vessels:
+            if self.vesselAlreadyExists(id):
+                self._vessels[id]['artist'].remove() # Undraw old vessel
+                if self._display.draw_names:
+                    self._vessels[id]['text'].remove() # Undraw old vessel name
+            self._vessels[id] = new_vessels[id] # Replace with new vessel
 
     def toggle_vessels_visibility(self, new_state: bool = None):
         if new_state is None:
@@ -266,7 +356,7 @@ class FeaturesManager:
         for vessel in self._vessels.values():
             artist = vessel['artist']
             artist.set_visible(not artist.get_visible())
-        self.update_vessels()
+        self.update_vessels_from_file()
         self.update_hazards()
         self._display.update_plot()
 

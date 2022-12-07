@@ -118,7 +118,7 @@ class Rectangle(Body):
 @dataclass
 class Ship(Body):
     dimensions = 16, 80
-    scale: float = 1.0
+    scale: float = 80.0
     lon_scale: float = 10.0
     lat_scale: float = 10.0
 

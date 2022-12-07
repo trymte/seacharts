@@ -9,7 +9,7 @@ from . import files
 from . import paths as dcp  # default configuratin paths
 
 
-class ENCConfig:
+class SeaChartsConfig:
     """Class for maintaining Electronic Navigational Charts configuration settings"""
 
     def __init__(self, config_file_name: Path = dcp.config, **kwargs):
