@@ -30,6 +30,7 @@ class FeaturesManager:
         self._land = None
         self._shore = None
         self._init_layers()
+        self.inputted_paths = {}
 
     @property
     def animated(self):
@@ -61,6 +62,7 @@ class FeaturesManager:
             a for a in [
                 *[v['artist'] for v in self._vessels.values()],
                 self._ownship,
+                *[v['artist'] for v in self.inputted_paths.values()],
             ] if a
         ]
 

@@ -3,12 +3,14 @@ import rclpy
 from rclpy.node import Node
 import datetime
 import matplotlib
+import numpy as np
 import simcharts.display as dis
 import simcharts.environment as env
 from simcharts.utils.helper import *
+from simcharts.display.colors import get_random_color_name
 from simcharts.nodes import LocalTrafficSubscriber
-from simcharts_interfaces.msg import Point, Polygon
-from simcharts_interfaces.srv import GetStaticObstacles, GetDynamicObstacles
+from simcharts_interfaces.msg import Point, Polygon, Path, Trajectory
+from simcharts_interfaces.srv import GetStaticObstacles, GetDynamicObstacles, DrawPath
 
 
 class ENC(Node):
@@ -41,6 +43,7 @@ class ENC(Node):
         matplotlib.use("TkAgg")
         
         self.local_traffic = {}
+        self.draw_paths_queue = {}
         self.dynamic_obstacles = {}
         self.static_obstacles = []
 
@@ -58,6 +61,7 @@ class ENC(Node):
         self.srv_callback_group = rclpy.callback_groups.ReentrantCallbackGroup()
         self.static_obstacles_srv = self.create_service(GetStaticObstacles, 'simcharts__get_static_obstacles', self._get_static_obstacles_callback, callback_group=self.srv_callback_group)
         self.static_obstacles_srv = self.create_service(GetDynamicObstacles, 'simcharts__get_dynamic_obstacles', self._get_dynamic_obstacles_callback, callback_group=self.srv_callback_group)
+        self.draw_path_srv = self.create_service(DrawPath, 'simcharts__draw_path', self._draw_path_callback, callback_group=self.srv_callback_group)
 
     @property
     def size(self) -> Tuple[int, int]:
@@ -118,6 +122,10 @@ class ENC(Node):
         self._display.update_vessels_plot()
         while True:
             rclpy.spin_once(self, executor=self.executor, timeout_sec=0.01)
+
+            # Check if there are new objects to be drawn
+            self.draw_paths()
+
             self._display.update_vessels_plot()
             delta_t = t_i_plus_1 - t_i
             if delta_t >= self.sim_callback_time:
@@ -204,6 +212,23 @@ class ENC(Node):
         :return: None
         """
         self._environment.filter_hazardous_areas(depth, buffer)
+
+    def draw_paths(self):
+        if self.draw_paths_queue == {}: return
+        for id, path_obj in self.draw_paths_queue.items():
+            # If a path with the same id already exists, extend it
+            p = path_obj['path']
+            color = path_obj['color']
+            if id in self._display.features.inputted_paths:
+                p = np.vstack([self._display.features.inputted_paths[id]['path'], p])
+                color = self._display.features.inputted_paths[id]['color']
+
+            artist = self._display.features.add_line(p, color, path_obj['buffer'], path_obj['thickness'], path_obj['edge_style'])
+            self._display.features.inputted_paths[id] = {}
+            self._display.features.inputted_paths[id]['artist'] = artist
+            self._display.features.inputted_paths[id]['path'] = p
+            self._display.features.inputted_paths[id]['color'] = color
+        self.draw_paths_queue = {}
 
     def draw_arrow(
         self,
@@ -410,4 +435,24 @@ class ENC(Node):
         response.timestamp = getTimeStamp(self.get_clock())
         response.dynamic_obstacles = obstacles
         self.get_logger().debug("Sent Dynamic Obstacles...")
+        return response
+    
+    def _draw_path_callback(self, request: Path, response) -> None:
+        """
+        Callback function for the draw path subscriber.
+        :param request: None
+        :return: None
+        """
+        self.get_logger().debug("Drawing Path...")
+        path = np.array([(request.path.x[i], request.path.y[i]) for i in range(len(request.path.x))])
+        self.get_logger().debug(f"\n\nPath shape: {path.shape}")
+        self.get_logger().debug(f"\n\nPath: {path}")
+        color = get_random_color_name()
+        buffer = 0.0
+        thickness = 2
+        edge_style = 'solid'
+        self.draw_paths_queue[request.id] = dict(path=path, color=color, buffer=buffer,thickness=thickness, edge_style=edge_style)
+        # artist = self._display.features.add_line(path, color, buffer, thickness, edge_style)
+        # self.get_logger().debug(f"artist: {artist}")
+        # self.get_logger().debug("Drew Path...")
         return response

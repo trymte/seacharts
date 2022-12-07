@@ -54,6 +54,9 @@ _layer_colors = dict(
 def get_random_color():
     return random.choice(list(_ship_colors.values()))
 
+def get_random_color_name():
+    return random.choice(list(_ship_colors.keys()))
+
 def color_picker(name, bins=None):
     if isinstance(name, int):
         return _blues(bins)[name]

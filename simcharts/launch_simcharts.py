@@ -6,7 +6,8 @@ def spinMultipleNodes(executor):
     executor.spin()
 
 def main():
-    # TODO: Add service to get plot trajectory
+    # BUG: Plotted paths do not show up before the user moves the canvas
+    # TODO: Add trajectory compatibility
     rclpy.init()
     config = utils.config.SeaChartsConfig(utils.paths.config)
     
