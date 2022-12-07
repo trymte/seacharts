@@ -282,24 +282,22 @@ class FeaturesManager:
                 continue
             if self.vesselAlreadyExists(ship_id):
                 color = self._vessels[ship_id]['color']
-                scale = self._vessels[ship_id]['scale']
             else:
                 color = get_random_color()
-                scale = float(np.random.randint(15, 100)) / 80.0 # Divide by 80 as 80 is the default length of the ship
             kwargs = dict(
-                scale=scale,
+                scale=vessel.scale,
                 lon_scale=2.0, # MAGIC NUMBER: Why is this 2.0?
                 lat_scale=1.0, # MAGIC NUMBER: Why is this 1.0?
             )
             ship = spl.Ship(*pose, **kwargs)
             artist = self.new_artist(ship.geometry, color)
             if self._display.draw_names:
-                tp = TextPath((vessel.x,vessel.y),  vessel.name, size=5*scale)
+                tp = TextPath((vessel.x,vessel.y),  vessel.name, size=5*vessel.scale)
                 text = self._display.axes.add_patch(PathPatch(tp, color="black"))
             else:
                 text = None
 
-            new_vessels[ship_id] = dict(ship=ship, artist=artist, color=color, scale=scale, text=text)
+            new_vessels[ship_id] = dict(ship=ship, artist=artist, color=color, text=text)
         self.replace_vessels(new_vessels)
 
     def update_vessels_from_file(self):

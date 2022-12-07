@@ -8,7 +8,7 @@ import simcharts.environment as env
 from simcharts.utils.helper import *
 from simcharts.nodes import LocalTrafficSubscriber
 from simcharts_interfaces.msg import Point, Polygon
-from simcharts_interfaces.srv import GetStaticObstacles
+from simcharts_interfaces.srv import GetStaticObstacles, GetDynamicObstacles
 
 
 class ENC(Node):
@@ -41,6 +41,8 @@ class ENC(Node):
         matplotlib.use("TkAgg")
         
         self.local_traffic = {}
+        self.dynamic_obstacles = {}
+        self.static_obstacles = []
 
         self.executor = executor
         self._cfg = config
@@ -52,10 +54,10 @@ class ENC(Node):
         self.seabed = self._environment.hydrography.bathymetry
         self._display = dis.Display(self._cfg.settings, self._environment, self)
 
-
         self.local_traffic_subscriber = LocalTrafficSubscriber()
         self.srv_callback_group = rclpy.callback_groups.ReentrantCallbackGroup()
         self.static_obstacles_srv = self.create_service(GetStaticObstacles, 'simcharts__get_static_obstacles', self._get_static_obstacles_callback, callback_group=self.srv_callback_group)
+        self.static_obstacles_srv = self.create_service(GetDynamicObstacles, 'simcharts__get_dynamic_obstacles', self._get_dynamic_obstacles_callback, callback_group=self.srv_callback_group)
 
     @property
     def size(self) -> Tuple[int, int]:
@@ -344,13 +346,10 @@ class ENC(Node):
         """
         self._display.save_figure(name, scale, extension)
 
-    def _get_static_obstacles_callback(self, request, response) -> None:
+    def _calc_static_obstacles(self):
         """
-        Callback function for the static obstacles subscriber.
-        :param msg: ObstacleArray message
-        :return: None
+        Calculate the static obstacles for the environment.
         """
-        self.get_logger().debug("Sending Static Obstacles...")
         raw_obstacles = self.land.geometry.__geo_interface__['coordinates']
         obstacles = []
         for _pol in raw_obstacles:
@@ -364,8 +363,51 @@ class ENC(Node):
                 points.append(point)
             polygon.polygon = points
             obstacles.append(polygon)
-        self.get_logger().debug(f"\n\nCLOCK: {self.get_clock().now().to_msg().sec}.{self.get_clock().now().to_msg().nanosec}\n\n")
+        self.static_obstacles = copy.deepcopy(obstacles)
+
+    def _get_static_obstacles_callback(self, request, response) -> None:
+        """
+        Callback function for the static obstacles subscriber.
+        :param request: None
+        :return: None
+        """
+        self.get_logger().debug("Sending Static Obstacles...")
+        if self.static_obstacles == []: self._calc_static_obstacles()
         response.timestamp = getTimeStamp(self.get_clock())
-        response.static_obstacles = obstacles
+        response.static_obstacles = copy.deepcopy(self.static_obstacles)
         self.get_logger().debug("Sent Static Obstacles...")
+        return response
+    
+    def _get_dynamic_obstacles_callback(self, request, response) -> None:
+        """
+        Callback function for the dynamic obstacles subscriber.
+        :param request: None
+        :return timestamp: string
+        :return dynamic_obstacles: list of Polygon msgs
+        """
+        # TODO: Implement dynamic obstacles
+        self.get_logger().debug("Sending Dynamic Obstacles...")
+        raw_obstacles = self._display.features._vessels
+        obstacles = []
+        self.get_logger().debug(f"\n\n_vessels: {self._display.features._vessels}")
+        for vessel in self._display.features._vessels.values():
+            self.get_logger().debug(f"B")
+            polygon = Polygon()
+            xy = vessel['ship'].geometry.exterior.coords.xy
+            self.get_logger().debug(f"C")
+            points = []
+            self.get_logger().debug(f"\n\nXY: {xy}")
+            self.get_logger().debug(f"\n\nXY[0]: {xy[0]}")
+            self.get_logger().debug(f"\n\nXY[1]: {xy[1]}")
+            for x, y in zip(xy[0], xy[1]):
+                point = Point()
+                point.x = x
+                point.y = y
+                points.append(point)
+            polygon.points = points
+            obstacles.append(polygon)
+
+        response.timestamp = getTimeStamp(self.get_clock())
+        response.dynamic_obstacles = obstacles
+        self.get_logger().debug("Sent Dynamic Obstacles...")
         return response

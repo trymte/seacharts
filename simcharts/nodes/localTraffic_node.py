@@ -114,6 +114,12 @@ class LocalTrafficNode(Node):
         vessel.timestamp = aisMsg.timestamp
         vessel.vesselsimtype = 'AIS'
         vessel.x, vessel.y = self._longlat2utm(aisMsg.longitude, aisMsg.latitude)
+        if vessel.id in self.local_traffic:
+            vessel.length = self.local_traffic[vessel.id].length
+            vessel.scale = self.local_traffic[vessel.id].scale
+        else:
+            vessel.length = float(np.random.randint(15, 75)) # Random length in meters
+            vessel.scale = vessel.length / 80.0 # 80m is the length of the default ship model
         if aisMsg.sog == None or aisMsg.sog == "null":
             vessel.sog = 0.0
         else:
