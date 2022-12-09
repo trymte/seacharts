@@ -27,6 +27,7 @@ display:
   colorbar_mode: true
   dark_mode: false
   draw_names: false # Buggy
+  nr_of_shadow_ships: 10
 
 ais:
   timer_period: 10

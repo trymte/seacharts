@@ -10,7 +10,7 @@ from simcharts.utils.helper import *
 from simcharts.display.colors import get_random_color_name
 from simcharts.nodes import LocalTrafficSubscriber
 from simcharts_interfaces.msg import Point, Polygon, Path, Trajectory
-from simcharts_interfaces.srv import GetStaticObstacles, GetDynamicObstacles, DrawPath
+from simcharts_interfaces.srv import GetStaticObstacles, GetDynamicObstacles, DrawPath, DrawTrajectory, AddVesselToLocalTraffic, CleanPlot, RemoveVesselFromLocalTraffic
 
 
 class ENC(Node):
@@ -43,9 +43,12 @@ class ENC(Node):
         matplotlib.use("TkAgg")
         
         self.local_traffic = {}
+        self.local_traffic_queue = {}
         self.draw_paths_queue = {}
+        self.draw_trajectories_queue = {}
         self.dynamic_obstacles = {}
         self.static_obstacles = []
+        self.clean_plot = False
 
         self.executor = executor
         self._cfg = config
@@ -60,8 +63,12 @@ class ENC(Node):
         self.local_traffic_subscriber = LocalTrafficSubscriber()
         self.srv_callback_group = rclpy.callback_groups.ReentrantCallbackGroup()
         self.static_obstacles_srv = self.create_service(GetStaticObstacles, 'simcharts__get_static_obstacles', self._get_static_obstacles_callback, callback_group=self.srv_callback_group)
-        self.static_obstacles_srv = self.create_service(GetDynamicObstacles, 'simcharts__get_dynamic_obstacles', self._get_dynamic_obstacles_callback, callback_group=self.srv_callback_group)
+        self.dynamic_obstacles_srv = self.create_service(GetDynamicObstacles, 'simcharts__get_dynamic_obstacles', self._get_dynamic_obstacles_callback, callback_group=self.srv_callback_group)
         self.draw_path_srv = self.create_service(DrawPath, 'simcharts__draw_path', self._draw_path_callback, callback_group=self.srv_callback_group)
+        self.draw_trajectory_srv = self.create_service(DrawTrajectory, 'simcharts__draw_trajectory', self._draw_trajectory_callback, callback_group=self.srv_callback_group)
+        self.add_ship_srv = self.create_service(AddVesselToLocalTraffic, 'simcharts__add_vessel', self._add_vessel_callback, callback_group=self.srv_callback_group)
+        self.remove_ship_srv = self.create_service(RemoveVesselFromLocalTraffic, 'simcharts__remove_vessel', self._remove_vessel_callback, callback_group=self.srv_callback_group)
+        self.clean_plot_srv = self.create_service(CleanPlot, 'simcharts__clean_plot', self._clean_plot_callback, callback_group=self.srv_callback_group)
 
     @property
     def size(self) -> Tuple[int, int]:
@@ -97,12 +104,10 @@ class ENC(Node):
     def updateLocalTraffic(self):
         rclpy.spin_once(self.local_traffic_subscriber, executor=self.executor, timeout_sec=0.01)
         new_traffic = self.local_traffic_subscriber.get_local_traffic()
+        self.get_logger().debug(f"Updating traffic with {len(new_traffic)} vessels\n")
         if new_traffic != {}:
-            self.local_traffic = new_traffic
-
-    def timerCallbackGetLocalTraffic(self):
-        self.get_logger().info('Timer expired, getting local traffic')
-        self.sendRequestGetLocalTraffic()
+            for id in new_traffic:
+                self.local_traffic_queue[id] = new_traffic[id]
 
     def start_sim(self, executor, duration: float = 0.0) -> None:
         """
@@ -123,19 +128,24 @@ class ENC(Node):
         while True:
             rclpy.spin_once(self, executor=self.executor, timeout_sec=0.01)
 
-            # Check if there are new objects to be drawn
-            self.draw_paths()
-
+            self.update_paths()
+            self.update_trajectories()
             self._display.update_vessels_plot()
             delta_t = t_i_plus_1 - t_i
             if delta_t >= self.sim_callback_time:
                 # rclpy.spin_once(self, executor=self.executor, timeout_sec=0.01)
                 self.updateLocalTraffic()
-                if len(self.local_traffic) > 0:
+                if len(self.local_traffic_queue) > 0:
+                    for id in self.local_traffic_queue:
+                        self.local_traffic[id] = self.local_traffic_queue[id]
                     self._display.refresh_vessels(self.local_traffic, self.size, self.origin)
-                    self.local_traffic = {}
+                    self.local_traffic_queue = {}
                 t_i = datetime.datetime.now().timestamp()
             t_i_plus_1 = datetime.datetime.now().timestamp()
+
+            if self.clean_plot:
+                self._clean_plot()
+                self.clean_plot = False
 
     def fullscreen_mode(self, arg: bool = True) -> None:
         """
@@ -213,22 +223,20 @@ class ENC(Node):
         """
         self._environment.filter_hazardous_areas(depth, buffer)
 
-    def draw_paths(self):
+    def update_paths(self):
         if self.draw_paths_queue == {}: return
-        for id, path_obj in self.draw_paths_queue.items():
-            # If a path with the same id already exists, extend it
-            p = path_obj['path']
-            color = path_obj['color']
-            if id in self._display.features.inputted_paths:
-                p = np.vstack([self._display.features.inputted_paths[id]['path'], p])
-                color = self._display.features.inputted_paths[id]['color']
-
-            artist = self._display.features.add_line(p, color, path_obj['buffer'], path_obj['thickness'], path_obj['edge_style'])
-            self._display.features.inputted_paths[id] = {}
-            self._display.features.inputted_paths[id]['artist'] = artist
-            self._display.features.inputted_paths[id]['path'] = p
-            self._display.features.inputted_paths[id]['color'] = color
+        self._display.draw_path(self.draw_paths_queue)
         self.draw_paths_queue = {}
+
+    def update_trajectories(self):
+        if self.draw_trajectories_queue == {}: return
+        del_ids =  self._display.draw_animated_trajectory(self.draw_trajectories_queue)
+
+        # Remove trajectories that have been fully traversed from the queue
+        if del_ids is not None:
+            for id in del_ids:
+                if id in self.draw_trajectories_queue:
+                    del self.draw_trajectories_queue[id]
 
     def draw_arrow(
         self,
@@ -371,6 +379,22 @@ class ENC(Node):
         """
         self._display.save_figure(name, scale, extension)
 
+    def _clean_plot(self) -> None:
+        """
+        Clear the environment plot.
+        :return: None
+        """
+        # self._display.remove_animated_vessels()
+        self._display.clean_plot()
+        self._display.refresh_vessels(self.local_traffic, self.size, self.origin)
+        # self._display.update_static_plot()
+        # self._display.update_vessels_plot()
+        self.local_traffic = {}
+        self._display.features.inputted_paths = {}
+        self._display.features.inputted_trajectories = {}
+        self._display.features.shadow_ships = {}
+
+
     def _calc_static_obstacles(self):
         """
         Calculate the static obstacles for the environment.
@@ -410,9 +434,7 @@ class ENC(Node):
         :return timestamp: string
         :return dynamic_obstacles: list of Polygon msgs
         """
-        # TODO: Implement dynamic obstacles
         self.get_logger().debug("Sending Dynamic Obstacles...")
-        raw_obstacles = self._display.features._vessels
         obstacles = []
         self.get_logger().debug(f"\n\n_vessels: {self._display.features._vessels}")
         for vessel in self._display.features._vessels.values():
@@ -444,15 +466,71 @@ class ENC(Node):
         :return: None
         """
         self.get_logger().debug("Drawing Path...")
-        path = np.array([(request.path.x[i], request.path.y[i]) for i in range(len(request.path.x))])
+        path = np.array([(request.path.x[i], request.path.y[i], request.path.psi[i]) for i in range(len(request.path.x))])
         self.get_logger().debug(f"\n\nPath shape: {path.shape}")
         self.get_logger().debug(f"\n\nPath: {path}")
         color = get_random_color_name()
-        buffer = 0.0
+        buffer = 0.1
         thickness = 2
         edge_style = 'solid'
         self.draw_paths_queue[request.id] = dict(path=path, color=color, buffer=buffer,thickness=thickness, edge_style=edge_style)
-        # artist = self._display.features.add_line(path, color, buffer, thickness, edge_style)
-        # self.get_logger().debug(f"artist: {artist}")
-        # self.get_logger().debug("Drew Path...")
         return response
+
+
+    def _draw_trajectory_callback(self, request, result):
+        """
+        Callback function for the draw trajectory subscriber.
+        :param request: .id .trajectory
+        :return: None
+        """
+        self.get_logger().debug("Drawing Trajectory...")
+        trajectory = np.array([(request.trajectory.x[i], request.trajectory.y[i], request.trajectory.psi[i]) for i in range(len(request.trajectory.x))])
+        color = get_random_color_name()
+        buffer = 0.1
+        thickness = 2
+        edge_style = 'solid'
+        self.draw_trajectories_queue[request.id] = dict(trajectory=trajectory, time=request.trajectory.t, color=color, buffer=buffer,thickness=thickness, edge_style=edge_style)
+        return result
+    
+    def _add_vessel_callback(self, request, result):
+        """
+        Callback function for the add vessel subscriber.
+        :param request: .id .vessel
+        :return: None
+        """
+        self.get_logger().debug("Adding Vessel...")
+        self.get_logger().debug(f"\n\nVessel: {request.vessel}")
+        try:
+            self.local_traffic[request.vessel.id] = request.vessel
+            self.get_logger().debug(f"\n\nLocal Traffic: {self.local_traffic}")
+            result.was_added = True
+        except:
+            result.was_added = False
+        return result
+    
+    def _clean_plot_callback(self, request, result):
+        """
+        Callback function for the clean plot subscriber.
+        :param request: None
+        :return: None
+        """
+        self.get_logger().debug("Cleaning Plot...")
+        self.clean_plot = True
+        return result
+    
+    def _remove_vessel_callback(self, request, result):
+        """
+        Callback function for the remove vessel subscriber.
+        :param request: .id
+        :return: None
+        """
+        self.get_logger().debug(f"Removing Vessel {request.id}")
+        try:
+            result.removed_vessel = copy.deepcopy(self.local_traffic[request.id])
+            self._display.features.remove_vessel(request.id)
+            self.local_traffic.pop(request.id)
+            result.was_removed = True
+        except Exception as e:
+            self.get_logger().debug(f"\n\nError: {e}")
+            result.was_removed = False
+        return result

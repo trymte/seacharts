@@ -7,10 +7,13 @@ import tkinter as tk
 from multiprocessing import Process
 from typing import List, Tuple
 
+import numpy as np
 import matplotlib.pyplot as plt
 import simcharts.environment as env
 from cartopy.crs import UTM
 from matplotlib.gridspec import GridSpec
+
+from simcharts.utils.helper import *
 
 from .colors import colorbar
 from .events import EventsManager
@@ -33,6 +36,7 @@ class Display:
         self.node = node
         self.crs = UTM(settings['enc']['utm_zone'])
         self.draw_names = settings['display']['draw_names']
+        self.nr_of_shadow_ships = settings['display']['nr_of_shadow_ships']
 
         self._background = None
         self.anchor_index = self._init_anchor_index(settings)
@@ -149,6 +153,12 @@ class Display:
         self.node.get_logger().debug("Updating entire plot")
         self.draw_animated_artists()
 
+    def clean_plot(self):
+        self.figure.canvas.restore_region(self._background)
+        self.node.get_logger().debug("Cleaning entire plot")
+        self.remove_animated_paths()
+        self.draw_animated_artists()
+
     def update_static_plot(self):
         self.figure.canvas.restore_region(self._background)
         self.node.get_logger().debug("Updating static plot")
@@ -156,7 +166,6 @@ class Display:
 
     def update_vessels_plot(self):
         self.figure.canvas.restore_region(self._background)
-        self.node.get_logger().debug("Updating vessels plot")
         self.draw_animated_vessels()
         if self.draw_names:
             self.draw_animated_vessels_text()
@@ -196,6 +205,24 @@ class Display:
         except tk.TclError:
             plt.close()
 
+    def draw_animated_shadows(self):
+        for artist in self.features.animatedShadowShips:
+            self.axes.draw_artist(artist)
+        try:
+            self.figure.canvas.blit()
+            self.figure.canvas.flush_events()
+        except tk.TclError:
+            plt.close()
+
+    def remove_animated_paths(self):
+        for artist in self.features.animatedPaths:
+            artist.remove()
+        try:
+            self.figure.canvas.blit()
+            self.figure.canvas.flush_events()
+        except tk.TclError:
+            plt.close()
+
     def draw_animated_vessels_text(self):
         for artist in self.features.animatedVesselsText:
             self.axes.draw_artist(artist)
@@ -204,6 +231,81 @@ class Display:
             self.figure.canvas.flush_events()
         except tk.TclError:
             plt.close()
+
+    def draw_path(self, queue):
+        for id, path_obj in queue.items():
+            # If a path with the same id already exists, extend it
+            p = path_obj['path']
+            color = path_obj['color']
+            if id in self.features.inputted_paths:
+                p = np.vstack([self.features.inputted_paths[id]['path'], p])
+                color = self.features.inputted_paths[id]['color']
+
+            artist = self.features.add_line(p[:,:2], color, path_obj['buffer'], path_obj['thickness'], path_obj['edge_style'])
+            self.features.inputted_paths[id] = {}
+            self.features.inputted_paths[id]['artist'] = artist
+            self.features.inputted_paths[id]['path'] = p
+            self.features.inputted_paths[id]['color'] = color
+
+            # Update the local traffic object, if there are any associated with the trajectory
+            # if id in self.features._vessels:
+            self.node.get_logger().debug(f"Ship with id {id} has a path, updating local traffic object")
+            self.features.draw_shadow_ships(id, p, self.nr_of_shadow_ships)
+
+    def draw_animated_trajectory(self, queue):
+        t_now = float(getTimeStamp())
+        pop_ids = []
+        self.figure.canvas.restore_region(self._background)
+        for id, trajectory_obj in queue.items():
+            # If a trajectory with the same id already exists, extend it
+            if id not in self.features.inputted_trajectories:
+                self.features.inputted_trajectories[id] = {}
+                self.features.inputted_trajectories[id]['t_start'] = t_now
+                self.features.inputted_trajectories[id]['artist'] = []
+                self.features.inputted_trajectories[id]['trajectory'] = []
+                self.features.inputted_trajectories[id]['color'] = trajectory_obj['color']
+
+            t_start = self.features.inputted_trajectories[id]['t_start']
+            color = self.features.inputted_trajectories[id]['color']
+            traversed_traj = self.features.inputted_trajectories[id]['trajectory']
+            
+            full_traj = trajectory_obj['trajectory']
+            t = trajectory_obj['time']
+            len_full_traj = len(trajectory_obj['trajectory'])
+            len_trav_traj = len(traversed_traj)
+            
+            if t[len_trav_traj] + t_start > t_now:
+                continue
+
+            for i in range(len_trav_traj, len_full_traj):
+                if t_now > t[i] + t_start:
+                    traversed_traj.append(full_traj[i])
+                else:
+                    break
+            len_trav_traj = len(traversed_traj)
+
+            self.features.inputted_trajectories[id]['trajectory'] = traversed_traj
+            
+            if len_trav_traj > 1:
+                artist = self.features.add_line(traversed_traj, color, trajectory_obj['buffer'], trajectory_obj['thickness'], trajectory_obj['edge_style'])
+                artist.set_animated(True)
+                self.features.inputted_trajectories[id]['artist'] = artist
+
+                # Update the local traffic object, if there are any associated with the trajectory
+                if id in self.features._vessels:
+                    # self.features._vessels[id]['artist'].remove()
+                    # self.features._vessels.pop(id)
+                    self.node.local_traffic[id].x = traversed_traj[-1][0]
+                    self.node.local_traffic[id].y = traversed_traj[-1][1]
+                    self.node.local_traffic[id].heading = traversed_traj[-1][2]
+                    self.features.update_vessel(self.node.local_traffic[id])
+
+            if len_trav_traj == len_full_traj:
+                pop_ids.append(id)
+            return pop_ids
+
+    # def draw_init_traj_pose(self, pose):
+
 
     def toggle_dark_mode(self, state=None):
         state = state if state is not None else not self._dark_mode

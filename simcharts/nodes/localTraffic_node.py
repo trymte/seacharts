@@ -11,6 +11,7 @@ from simcharts_interfaces.srv import UpdateVesselInLocalTraffic, AddVesselToLoca
 class LocalTrafficSubscriber(Node):
     def __init__(self):
         super().__init__('simcharts__local_traffic_subscriber')
+        self._lock = threading.Lock()
         self._local_traffic = {}
         self.local_traffic_subscription = self.create_subscription(
             ListOfVessels,
@@ -21,12 +22,17 @@ class LocalTrafficSubscriber(Node):
         self.local_traffic_subscription  # prevent unused variable warning
 
     def _listener_callback(self, msg):
-        self._local_traffic = {}
-        for vessel in msg.local_traffic:
-            self._local_traffic[vessel.id] = vessel
+        with self._lock:
+            self._local_traffic = {}
+            self.get_logger().debug(f"Received {len(msg.local_traffic)} vessels")
+            for vessel in msg.local_traffic:
+                self._local_traffic[vessel.id] = vessel
 
     def get_local_traffic(self):
-        return copy.deepcopy(self._local_traffic)
+        ret = {}
+        with self._lock:
+            ret = copy.deepcopy(self._local_traffic)
+        return ret
 
 class LocalTrafficNode(Node):
     def __init__(self, settings, cli_args=None):
@@ -132,7 +138,10 @@ class LocalTrafficNode(Node):
             vessel.heading = 0.0
         else:
             vessel.heading = float(aisMsg.heading)
-        vessel.rot = aisMsg.rot
+        if (aisMsg.rot == "null" or aisMsg.rot == None):
+            vessel.rot = 0.0
+        else:
+            vessel.rot = float(aisMsg.rot)
         vessel.name = aisMsg.name
         vessel.shiptype = aisMsg.shiptype
         return vessel

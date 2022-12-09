@@ -10,7 +10,7 @@ import simcharts.utils as utils
 from simcharts.utils.helper import *
 from cartopy.feature import ShapelyFeature
 
-from .colors import color_picker, get_random_color
+from .colors import color_picker, get_random_color, _ship_colors
 
 
 class FeaturesManager:
@@ -31,6 +31,8 @@ class FeaturesManager:
         self._shore = None
         self._init_layers()
         self.inputted_paths = {}
+        self.inputted_trajectories = {}
+        self.shadow_ships = {}
 
     @property
     def animated(self):
@@ -63,6 +65,25 @@ class FeaturesManager:
                 *[v['artist'] for v in self._vessels.values()],
                 self._ownship,
                 *[v['artist'] for v in self.inputted_paths.values()],
+                *[v['artist'] for v in self.inputted_trajectories.values()],
+                *[v['artist'] for v in self.shadow_ships.values()],
+            ] if a
+        ]
+
+    @property
+    def animatedShadowShips(self):
+        return [
+            a for a in [
+                *[v['artist'] for v in self.shadow_ships.values()],
+            ] if a
+        ]
+
+    @property
+    def animatedPaths(self):
+        return [
+            a for a in [
+                *[v['artist'] for v in self.inputted_paths.values()],
+                *[v['artist'] for v in self.inputted_trajectories.values()],
             ] if a
         ]
 
@@ -137,7 +158,8 @@ class FeaturesManager:
                                     transform=self._display.crs)
         else:
             geometry = spl.Line(points=points).geometry.buffer(buffer)
-            self.add_overlay(geometry, color_name, True, linewidth, linestyle)
+            artist = self.add_overlay(geometry, color_name, True, linewidth, linestyle)
+            return artist
 
     def add_polygon(self, shape, color, interiors, fill, linewidth, linestyle):
         try:
@@ -165,7 +187,8 @@ class FeaturesManager:
             kwargs['linewidth'] = linewidth
         if linestyle is not None:
             kwargs['linestyle'] = linestyle
-        self.new_artist(geometry, color, 0, **kwargs)
+        artist = self.new_artist(geometry, color, 0, **kwargs)
+        return artist
 
     def update_waypoints(self, number, pick, coords=None):
         path = self._paths[number - 1]
@@ -264,6 +287,33 @@ class FeaturesManager:
         left, right = (x2 - dy, y2 + dx), (x2 + dy, y2 - dx)
         return spl.Shape.arrow_head([(x1, y1), right, left]), shortest.length
 
+    def draw_shadow_ships(self, id, points, nr_of_shadow_ships=5):
+        len_path = len(points)
+        vessel = self._vessels[id]['ship']
+        for i in range(nr_of_shadow_ships):
+            color = _ship_colors['darkgrey']
+            if i == nr_of_shadow_ships-1:
+                pose = [
+                    points[-1][0],
+                    points[-1][1],
+                    points[-1][2]
+                    ]
+            else:
+                pose = [
+                    points[i*len_path//nr_of_shadow_ships][0],
+                    points[i*len_path//nr_of_shadow_ships][1],
+                    points[i*len_path//nr_of_shadow_ships][2]
+                    ]
+            kwargs = dict(
+                scale=vessel.scale,
+                lon_scale=2.0, # MAGIC NUMBER: Why is this 2.0?
+                lat_scale=1.0, # MAGIC NUMBER: Why is this 1.0?
+            )
+            ship = spl.Ship(*pose, **kwargs)
+            artist = self.new_artist(ship.geometry, color)
+            self.shadow_ships[f"{id}_{i}"] = {}
+            self.shadow_ships[f"{id}_{i}"]['artist'] = artist
+
     def update_vessels(self, vessels, size, origin):
         '''
         Update the vessels on the display.
@@ -301,6 +351,41 @@ class FeaturesManager:
 
             new_vessels[ship_id] = dict(ship=ship, artist=artist, color=color, text=text)
         self.replace_vessels(new_vessels)
+
+    def update_vessel(self, vessel):
+        '''
+        Update the vessel on the display.
+
+        In:
+            vessels: (Dict(Vessel)) Dict of Vessel messages
+        '''
+        updated_vessel = {}
+        ship_id = vessel.id
+        pose = [vessel.x, vessel.y, vessel.heading]
+        if (vessel.heading == None): pose[2] = vessel.cog
+        pose[2] = min(359, abs(pose[2]))
+        pose[2] = max(0, abs(pose[2]))
+        if not self.vesselChanged(ship_id, pose):
+            return
+        if self.vesselAlreadyExists(ship_id):
+            color = self._vessels[ship_id]['color']
+        else:
+            color = get_random_color()
+        kwargs = dict(
+            scale=vessel.scale,
+            lon_scale=2.0, # MAGIC NUMBER: Why is this 2.0?
+            lat_scale=1.0, # MAGIC NUMBER: Why is this 1.0?
+        )
+        ship = spl.Ship(*pose, **kwargs)
+        artist = self.new_artist(ship.geometry, color)
+        if self._display.draw_names:
+            tp = TextPath((vessel.x,vessel.y),  vessel.name, size=5*vessel.scale)
+            text = self._display.axes.add_patch(PathPatch(tp, color="black"))
+        else:
+            text = None
+
+        updated_vessel[ship_id] = dict(ship=ship, artist=artist, color=color, text=text)
+        self.replace_vessels(updated_vessel)
 
     def update_vessels_from_file(self):
         if self.show_vessels:
@@ -341,13 +426,21 @@ class FeaturesManager:
 
     def vesselAlreadyExists(self, ship_id): return ship_id in self._vessels
 
+    def remove_vessel(self, ship_id):
+        if self.vesselAlreadyExists(ship_id):
+            self._vessels[ship_id]['artist'].remove()
+            if self._display.draw_names:
+                self._vessels[ship_id]['text'].remove()
+            self._vessels.pop(ship_id)
+
     def replace_vessels(self, new_vessels):
-        for id in new_vessels:
-            if self.vesselAlreadyExists(id):
-                self._vessels[id]['artist'].remove() # Undraw old vessel
-                if self._display.draw_names:
-                    self._vessels[id]['text'].remove() # Undraw old vessel name
-            self._vessels[id] = new_vessels[id] # Replace with new vessel
+        # for id in new_vessels:
+        #     if self.vesselAlreadyExists(id):
+        #         self._vessels[id]['artist'].remove() # Undraw old vessel
+        #         if self._display.draw_names:
+        #             self._vessels[id]['text'].remove() # Undraw old vessel name
+        #     self._vessels[id] = new_vessels[id] # Replace with new vessel
+        self._vessels = new_vessels
 
     def toggle_vessels_visibility(self, new_state: bool = None):
         if new_state is None:

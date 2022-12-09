@@ -101,6 +101,9 @@ display:
     draw_names:
       required: True
       type: boolean
+    nr_of_shadow_ships:
+      required: True
+      type: integer
 
 ais:
   required: true
