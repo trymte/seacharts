@@ -3,6 +3,7 @@ import rclpy
 from rclpy.node import Node
 import datetime
 import matplotlib
+# import matplotlib.pyplot as plt
 import numpy as np
 import simcharts.display as dis
 import simcharts.environment as env
@@ -40,7 +41,10 @@ class ENC(Node):
 
     def __init__(self, config, executor=None, cli_args=None, multiprocessing=False, **kwargs):
         super().__init__('simcharts__node', cli_args=cli_args)
+        # matplotlib.use("qt5")
+        # matplotlib.use("qt5agg")
         matplotlib.use("TkAgg")
+        # plt.switch_backend("TkAgg")
         
         self.local_traffic = {}
         self.local_traffic_queue = {}
