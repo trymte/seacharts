@@ -341,9 +341,9 @@ class FeaturesManager:
         if (vessel.heading == None): pose[2] = vessel.cog
         pose[2] = min(359, abs(pose[2]))
         pose[2] = max(0, abs(pose[2]))
-        if not self.vesselChanged(ship_id, pose):
+        if not self.vessel_changed(ship_id, pose):
             return
-        if self.vesselAlreadyExists(ship_id):
+        if self.vessel_already_exists(ship_id):
             color = self._vessels[ship_id]['color']
         else:
             color = get_random_color()
@@ -371,9 +371,9 @@ class FeaturesManager:
                 for ship_details in entries:
                     ship_id = ship_details[0]
                     pose = ship_details[1:4]
-                    if not self.vesselChanged(ship_id, pose):
+                    if not self.vessel_changed(ship_id, pose):
                         continue
-                    if self.vesselAlreadyExists(ship_id):
+                    if self.vessel_already_exists(ship_id):
                         color = color_picker(self._vessels[ship_id]['ship']['color'])
                     else:
                         other = ship_details[4]
@@ -393,18 +393,8 @@ class FeaturesManager:
                     new_vessels[ship_id] = dict(ship=ship, artist=artist)
                 self.replace_vessels(new_vessels)
 
-    def vesselChanged(self, ship_id, pose):
-        if ship_id in self._vessels:
-            old_ship = self._vessels[ship_id]['ship']
-            if old_ship.parameters[:3] == pose:
-                return False
-        return True
-
-    def vesselAlreadyExists(self, ship_id):
-        return ship_id in self._vessels
-
     def remove_vessel(self, ship_id):
-        if self.vesselAlreadyExists(ship_id):
+        if self.vessel_already_exists(ship_id):
             self._vessels[ship_id]['artist'].remove()
             if self._display.draw_names:
                 self._vessels[ship_id]['text'].remove()
@@ -412,12 +402,22 @@ class FeaturesManager:
 
     def replace_vessels(self, new_vessels):
         # for id in new_vessels:
-        #     if self.vesselAlreadyExists(id):
+        #     if self.vessel_already_exists(id):
         #         self._vessels[id]['artist'].remove() # Undraw old vessel
         #         if self._display.draw_names:
         #             self._vessels[id]['text'].remove() # Undraw old vessel name
         #     self._vessels[id] = new_vessels[id] # Replace with new vessel
         self._vessels = new_vessels
+        
+    def vessel_changed(self, ship_id, pose):
+        if ship_id in self._vessels:
+            old_ship = self._vessels[ship_id]['ship']
+            if old_ship.parameters[:3] == pose:
+                return False
+        return True
+
+    def vessel_already_exists(self, ship_id):
+        return ship_id in self._vessels
 
     def toggle_vessels_visibility(self, new_state: bool = None):
         if new_state is None:
