@@ -3,7 +3,6 @@ import rclpy
 from rclpy.node import Node
 import datetime
 import matplotlib
-# import matplotlib.pyplot as plt
 import numpy as np
 import simcharts.display as dis
 import simcharts.environment as env
@@ -11,7 +10,7 @@ from simcharts.utils.helper import *
 from simcharts.display.colors import get_random_color_name
 from simcharts.nodes import LocalTrafficSubscriber
 from simcharts_interfaces.msg import Point, Polygon, Path, Trajectory
-from simcharts_interfaces.srv import GetStaticObstacles, GetDynamicObstacles, DrawPath, DrawTrajectory, AddVesselToLocalTraffic, CleanPlot, RemoveVesselFromLocalTraffic
+from simcharts_interfaces.srv import GetStaticObstacles, GetDynamicObstacles, DrawPath, DrawTrajectory, AddVesselToLocalTraffic, CleanPlot, RemoveVesselFromLocalTraffic, DrawObstacleOverlay
 
 
 class ENC(Node):
@@ -41,15 +40,13 @@ class ENC(Node):
 
     def __init__(self, config, executor=None, cli_args=None, multiprocessing=False, **kwargs):
         super().__init__('simcharts__node', cli_args=cli_args)
-        # matplotlib.use("qt5")
-        # matplotlib.use("qt5agg")
         matplotlib.use("TkAgg")
-        # plt.switch_backend("TkAgg")
         
         self.local_traffic = {}
         self.local_traffic_queue = {}
         self.draw_paths_queue = {}
         self.draw_trajectories_queue = {}
+        self.draw_polygon_queue = []
         self.dynamic_obstacles = {}
         self.static_obstacles = []
         self.clean_plot = False
@@ -64,12 +61,14 @@ class ENC(Node):
         self.seabed = self._environment.hydrography.bathymetry
         self._display = dis.Display(self._cfg.settings, self._environment, self)
 
+        # ROS communication
         self.local_traffic_subscriber = LocalTrafficSubscriber()
         self.srv_callback_group = rclpy.callback_groups.ReentrantCallbackGroup()
         self.static_obstacles_srv = self.create_service(GetStaticObstacles, 'simcharts__get_static_obstacles', self._get_static_obstacles_callback, callback_group=self.srv_callback_group)
         self.dynamic_obstacles_srv = self.create_service(GetDynamicObstacles, 'simcharts__get_dynamic_obstacles', self._get_dynamic_obstacles_callback, callback_group=self.srv_callback_group)
         self.draw_path_srv = self.create_service(DrawPath, 'simcharts__draw_path', self._draw_path_callback, callback_group=self.srv_callback_group)
         self.draw_trajectory_srv = self.create_service(DrawTrajectory, 'simcharts__draw_trajectory', self._draw_trajectory_callback, callback_group=self.srv_callback_group)
+        self.draw_obstacle_overlay_srv = self.create_service(DrawObstacleOverlay, 'simcharts__draw_obstacle_overlay', self._draw_obstacle_overlay_callback, callback_group=self.srv_callback_group)
         self.add_ship_srv = self.create_service(AddVesselToLocalTraffic, 'simcharts__add_vessel', self._add_vessel_callback, callback_group=self.srv_callback_group)
         self.remove_ship_srv = self.create_service(RemoveVesselFromLocalTraffic, 'simcharts__remove_vessel', self._remove_vessel_callback, callback_group=self.srv_callback_group)
         self.clean_plot_srv = self.create_service(CleanPlot, 'simcharts__clean_plot', self._clean_plot_callback, callback_group=self.srv_callback_group)
@@ -105,14 +104,6 @@ class ENC(Node):
         """Return the supported feature layers."""
         return self._environment.supported_layers
 
-    def updateLocalTraffic(self):
-        rclpy.spin_once(self.local_traffic_subscriber, executor=self.executor, timeout_sec=0.01)
-        new_traffic = self.local_traffic_subscriber.get_local_traffic()
-        self.get_logger().debug(f"Updating traffic with {len(new_traffic)} vessels\n")
-        if new_traffic != {}:
-            for id in new_traffic:
-                self.local_traffic_queue[id] = new_traffic[id]
-
     def start_sim(self, executor, duration: float = 0.0) -> None:
         """
         Show a Matplotlib display window of a maritime environment.
@@ -125,20 +116,21 @@ class ENC(Node):
         t_start = datetime.datetime.now().timestamp()
         t_i = datetime.datetime.now().timestamp()
         t_i_plus_1 = datetime.datetime.now().timestamp() + 5000
-        self.updateLocalTraffic()
+        self.update_local_traffic()
         self._display.refresh_vessels(self.local_traffic, self.size, self.origin)
         self._display.update_static_plot()
         self._display.update_vessels_plot()
         while True:
             rclpy.spin_once(self, executor=self.executor, timeout_sec=0.01)
 
-            self.update_paths()
+            self.draw_paths()
             self.update_trajectories()
+            self.draw_polygons()
             self._display.update_vessels_plot()
             delta_t = t_i_plus_1 - t_i
             if delta_t >= self.sim_callback_time:
                 # rclpy.spin_once(self, executor=self.executor, timeout_sec=0.01)
-                self.updateLocalTraffic()
+                self.update_local_traffic()
                 if len(self.local_traffic_queue) > 0:
                     for id in self.local_traffic_queue:
                         self.local_traffic[id] = self.local_traffic_queue[id]
@@ -227,12 +219,31 @@ class ENC(Node):
         """
         self._environment.filter_hazardous_areas(depth, buffer)
 
-    def update_paths(self):
+    def update_local_traffic(self):
+        '''
+        Update the local traffic queue with the latest live traffic from the local_traffic_subscriber
+        '''
+        rclpy.spin_once(self.local_traffic_subscriber, executor=self.executor, timeout_sec=0.01)
+        new_traffic = self.local_traffic_subscriber.get_local_traffic()
+        self.get_logger().debug(f"Updating traffic with {len(new_traffic)} vessels\n")
+        if new_traffic != {}:
+            for id in new_traffic:
+                self.local_traffic_queue[id] = new_traffic[id]
+
+    def draw_paths(self):
+        '''
+        Draw paths from the draw_paths_queue
+        '''
         if self.draw_paths_queue == {}: return
         self._display.draw_path(self.draw_paths_queue)
         self.draw_paths_queue = {}
 
     def update_trajectories(self):
+        '''
+        Update trajectories from the draw_trajectories_queue
+        Trajectories are drawn as the simulation timer progresses.
+        Once a trajectory has been fully traversed, it is removed from the queue.
+        '''
         if self.draw_trajectories_queue == {}: return
         del_ids =  self._display.draw_animated_trajectory(self.draw_trajectories_queue)
 
@@ -241,6 +252,15 @@ class ENC(Node):
             for id in del_ids:
                 if id in self.draw_trajectories_queue:
                     del self.draw_trajectories_queue[id]
+
+    def draw_polygons(self):
+        '''
+        Draw polygons from the draw_polygon_queue
+        '''
+        if self.draw_polygon_queue == []: return
+        for _ in range(len(self.draw_polygon_queue)):
+            polygon = self.draw_polygon_queue.pop(0)
+            self.draw_polygon(polygon, color='blue', fill=True, thickness=2, edge_style='solid')
 
     def draw_arrow(
         self,
@@ -414,13 +434,13 @@ class ENC(Node):
                 point.x = p[0]
                 point.y = p[1]
                 points.append(point)
-            polygon.polygon = points
+            polygon.points = points
             obstacles.append(polygon)
         self.static_obstacles = copy.deepcopy(obstacles)
 
     def _get_static_obstacles_callback(self, request, response) -> None:
         """
-        Callback function for the static obstacles subscriber.
+        Callback function for the static obstacles service.
         :param request: None
         :return: None
         """
@@ -433,7 +453,7 @@ class ENC(Node):
     
     def _get_dynamic_obstacles_callback(self, request, response) -> None:
         """
-        Callback function for the dynamic obstacles subscriber.
+        Callback function for the dynamic obstacles service.
         :param request: None
         :return timestamp: string
         :return dynamic_obstacles: list of Polygon msgs
@@ -465,7 +485,7 @@ class ENC(Node):
     
     def _draw_path_callback(self, request: Path, response) -> None:
         """
-        Callback function for the draw path subscriber.
+        Callback function for the draw path service.
         :param request: None
         :return: None
         """
@@ -477,13 +497,19 @@ class ENC(Node):
         buffer = 0.1
         thickness = 2
         edge_style = 'solid'
-        self.draw_paths_queue[request.id] = dict(path=path, color=color, buffer=buffer,thickness=thickness, edge_style=edge_style)
+        nrOfShaows = request.nrofshadows
+        self.draw_paths_queue[request.id] = dict(path=path,
+                                                 color=color,
+                                                 buffer=buffer,
+                                                 thickness=thickness,
+                                                 edge_style=edge_style,
+                                                 nrOfShadows=nrOfShaows)
         return response
 
 
     def _draw_trajectory_callback(self, request, result):
         """
-        Callback function for the draw trajectory subscriber.
+        Callback function for the draw trajectory service.
         :param request: .id .trajectory
         :return: None
         """
@@ -495,18 +521,35 @@ class ENC(Node):
         edge_style = 'solid'
         self.draw_trajectories_queue[request.id] = dict(trajectory=trajectory, time=request.trajectory.t, color=color, buffer=buffer,thickness=thickness, edge_style=edge_style)
         return result
+
+    def _draw_obstacle_overlay_callback(self, request, result):
+        """
+        Callback function for the draw obstacle overlay service.
+        :param request: List[Polygon]
+        :return: None
+        """
+        self.get_logger().debug("Drawing Obstacle Overlay... NOT IMPLEMENTED YET")
+        # TODO: Implement this
+        req_overlay = request.obstacle_overlay
+        for pol in req_overlay:
+            polygon = []
+            for point in pol.points:
+                polygon.append((point.x, point.y))
+            self.draw_polygon_queue.append(polygon)
+            # self.draw_polygon(polygon, color='blue', fill=True, thickness=2, edge_style='solid')
+        return result
     
     def _add_vessel_callback(self, request, result):
         """
-        Callback function for the add vessel subscriber.
+        Callback function for the add vessel service.
         :param request: .id .vessel
         :return: None
         """
         self.get_logger().debug("Adding Vessel...")
         self.get_logger().debug(f"\n\nVessel: {request.vessel}")
         try:
-            self.local_traffic[request.vessel.id] = request.vessel
-            self.get_logger().debug(f"\n\nLocal Traffic: {self.local_traffic}")
+            self.local_traffic_queue[request.vessel.id] = request.vessel
+            self.get_logger().debug(f"\n\nLocal Traffic: {self.local_traffic_queue}")
             result.was_added = True
         except:
             result.was_added = False
@@ -514,7 +557,7 @@ class ENC(Node):
     
     def _clean_plot_callback(self, request, result):
         """
-        Callback function for the clean plot subscriber.
+        Callback function for the clean plot service.
         :param request: None
         :return: None
         """
@@ -524,7 +567,7 @@ class ENC(Node):
     
     def _remove_vessel_callback(self, request, result):
         """
-        Callback function for the remove vessel subscriber.
+        Callback function for the remove vessel service.
         :param request: .id
         :return: None
         """

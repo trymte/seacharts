@@ -1,11 +1,10 @@
 
 enc:
   utm_zone: 32
-  size: [900.0, 506.20]                                                  # width, height (east, north) window to consider map data from. Unit is distance in meters
-  # size: [8900.0, 4506.20]                                                  # width, height (east, north) window to consider map data from. Unit is distance in meters
-  origin: [569042.27, 7034900.20]                                            # easting/northing origin (UTM zone 33N) as an example
-  # origin: [567850.06, 7033924.84]                                            # easting/northing origin (UTM zone 33N) as an example
-  # origin: [44300.0, 6956450.0]                                            # easting/northing origin (UTM zone 33N) as an example
+  size: [1800.0, 1006.20]                                                  # width, height (east, north) window to consider map data from. Unit is distance in meters
+  origin: [569747.80, 7035179.12]                                            # easting/northing origin (UTM zone 33N) as an example
+  # origin: [570102.58, 7035529.73]                                            # easting/northing origin (UTM zone 33N) as an example
+  # origin: [569703.81, 7035269.56]                                            # easting/northing origin (UTM zone 33N) as an example
   buffer: 0                                                               # int of dilation or erosion distance for geometries
   tolerance: 0                                                            # int of maximum tolerance distance for geometries
   layers: ["seabed", "land", "shore"]                                     # list(str...) of feature layers to load or show

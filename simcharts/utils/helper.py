@@ -26,7 +26,7 @@ def getTimeStamp(clock=None):
     if clock is None:
         ts = datetime.datetime.now().timestamp()
     else:
-        ts = f"{clock.now().to_msg().sec}.{clock.now().to_msg().nanosec}"
+        ts = float(f"{clock.now().to_msg().sec}.{clock.now().to_msg().nanosec}")
     return ts
 
 def isInHorizon(vessel: Vessel, size, origin) -> bool:

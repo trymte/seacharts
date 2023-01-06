@@ -36,7 +36,6 @@ class Display:
         self.node = node
         self.crs = UTM(settings['enc']['utm_zone'])
         self.draw_names = settings['display']['draw_names']
-        self.nr_of_shadow_ships = settings['display']['nr_of_shadow_ships']
 
         self._background = None
         self.anchor_index = self._init_anchor_index(settings)
@@ -138,8 +137,7 @@ class Display:
         '''
         Refreshes the vessels in the environment
 
-        In: 
-            vessels: (Vessel[]) List of Vessel messages
+        :param vessels: (Vessel[]) List of Vessel messages
         '''
         if vessels != {}: self.features.update_vessels(vessels, size, origin)
 
@@ -237,6 +235,7 @@ class Display:
             # If a path with the same id already exists, extend it
             p = path_obj['path']
             color = path_obj['color']
+            nrOfShadows = path_obj['nrOfShadows']
             if id in self.features.inputted_paths:
                 p = np.vstack([self.features.inputted_paths[id]['path'], p])
                 color = self.features.inputted_paths[id]['color']
@@ -248,9 +247,9 @@ class Display:
             self.features.inputted_paths[id]['color'] = color
 
             # Update the local traffic object, if there are any associated with the trajectory
-            # if id in self.features._vessels:
-            self.node.get_logger().debug(f"Ship with id {id} has a path, updating local traffic object")
-            self.features.draw_shadow_ships(id, p, self.nr_of_shadow_ships)
+            if self.features.vesselAlreadyExists(id):
+                self.node.get_logger().debug(f"Ship with id {id} has a path, updating local traffic object")
+                self.features.draw_shadow_ships(id, p, nrOfShadows)
 
     def draw_animated_trajectory(self, queue):
         t_now = float(getTimeStamp())
@@ -298,7 +297,8 @@ class Display:
                     self.node.local_traffic[id].x = traversed_traj[-1][0]
                     self.node.local_traffic[id].y = traversed_traj[-1][1]
                     self.node.local_traffic[id].heading = traversed_traj[-1][2]
-                    self.features.update_vessel(self.node.local_traffic[id])
+                    self.features.update_vessels(self.node.local_traffic[id])
+                    self.node.get_logger().debug(f"Ship with id {id} has a heading of {traversed_traj[-1][2]}")
 
             if len_trav_traj == len_full_traj:
                 pop_ids.append(id)

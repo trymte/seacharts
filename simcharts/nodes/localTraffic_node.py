@@ -99,7 +99,7 @@ class LocalTrafficNode(Node):
         for m in msg.ais_msgs:
             vessel = self._AIS2Vessel(m)
             size = [self.size[0]*1.02, self.size[1]*1.02] # 2% buffer
-            if not isInHorizon(vessel, size, self.origin): continue # 2% buffer
+            if not in_horizon(vessel, size, self.origin): continue # 2% buffer
             vessels.append(vessel)
             self.local_traffic[vessel.id] = vessel
         

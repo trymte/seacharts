@@ -324,35 +324,11 @@ class FeaturesManager:
         # if self.show_vessels:
         new_vessels = {}
         for vessel in vessels.values():
-            if not isInHorizon(vessel, size, origin): continue
-            ship_id = vessel.id
-            pose = [vessel.x, vessel.y, vessel.heading]
-            if (vessel.heading == None): pose[2] = vessel.cog
-            pose[2] = min(359, abs(pose[2]))
-            pose[2] = max(0, abs(pose[2]))
-            if not self.vesselChanged(ship_id, pose):
-                continue
-            if self.vesselAlreadyExists(ship_id):
-                color = self._vessels[ship_id]['color']
-            else:
-                color = get_random_color()
-            kwargs = dict(
-                scale=vessel.scale,
-                lon_scale=2.0, # MAGIC NUMBER: Why is this 2.0?
-                lat_scale=1.0, # MAGIC NUMBER: Why is this 1.0?
-            )
-            ship = spl.Ship(*pose, **kwargs)
-            artist = self.new_artist(ship.geometry, color)
-            if self._display.draw_names:
-                tp = TextPath((vessel.x,vessel.y),  vessel.name, size=5*vessel.scale)
-                text = self._display.axes.add_patch(PathPatch(tp, color="black"))
-            else:
-                text = None
-
-            new_vessels[ship_id] = dict(ship=ship, artist=artist, color=color, text=text)
+            if not in_horizon(vessel, size, origin): continue
+            new_vessels[vessel.id] = self._update_vessel(vessel)
         self.replace_vessels(new_vessels)
 
-    def update_vessel(self, vessel):
+    def _update_vessel(self, vessel):
         '''
         Update the vessel on the display.
 
@@ -383,9 +359,9 @@ class FeaturesManager:
             text = self._display.axes.add_patch(PathPatch(tp, color="black"))
         else:
             text = None
-
-        updated_vessel[ship_id] = dict(ship=ship, artist=artist, color=color, text=text)
-        self.replace_vessels(updated_vessel)
+        return dict(ship=ship, artist=artist, color=color, text=text)
+        # updated_vessel[ship_id] = dict(ship=ship, artist=artist, color=color, text=text)
+        # self.replace_vessels(updated_vessel)
 
     def update_vessels_from_file(self):
         if self.show_vessels:
@@ -424,7 +400,8 @@ class FeaturesManager:
                 return False
         return True
 
-    def vesselAlreadyExists(self, ship_id): return ship_id in self._vessels
+    def vesselAlreadyExists(self, ship_id):
+        return ship_id in self._vessels
 
     def remove_vessel(self, ship_id):
         if self.vesselAlreadyExists(ship_id):
