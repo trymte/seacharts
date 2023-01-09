@@ -6,6 +6,7 @@ import matplotlib
 import numpy as np
 import simcharts.display as dis
 import simcharts.environment as env
+from cartopy.crs import UTM
 from simcharts.utils.helper import *
 from simcharts.display.colors import get_random_color_name
 from simcharts.nodes import LocalTrafficSubscriber
@@ -72,6 +73,18 @@ class ENC(Node):
         self.add_ship_srv = self.create_service(AddVesselToLocalTraffic, 'simcharts__add_vessel', self._add_vessel_callback, callback_group=self.srv_callback_group)
         self.remove_ship_srv = self.create_service(RemoveVesselFromLocalTraffic, 'simcharts__remove_vessel', self._remove_vessel_callback, callback_group=self.srv_callback_group)
         self.clean_plot_srv = self.create_service(CleanPlot, 'simcharts__clean_plot', self._clean_plot_callback, callback_group=self.srv_callback_group)
+
+    @property
+    def bbox(self) -> Tuple[int, int, int, int]:
+        """
+        :return: tuple of bounding box coordinates (xmin, ymin, xmax, ymax)
+        """
+        return self._environment.scope.extent.bbox
+
+    @property
+    def crs(self) -> UTM:
+        """Return the coordinate reference system projection used, as UTM object."""
+        return self._display.crs
 
     @property
     def size(self) -> Tuple[int, int]:
