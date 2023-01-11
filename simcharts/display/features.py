@@ -24,15 +24,16 @@ class FeaturesManager:
         self._ownship = None
         self._horizon = None
         self._vessels = {}
+        self._polygons = {}
         self._hazards = {}
         self._arrows = {}
         self._seabeds = {}
-        self._land = None
-        self._shore = None
-        self._init_layers()
         self.inputted_paths = {}
         self.inputted_trajectories = {}
         self.shadow_ships = {}
+        self._land = None
+        self._shore = None
+        self._init_layers()
 
     @property
     def animated(self):
@@ -43,55 +44,25 @@ class FeaturesManager:
                 *self._arrows.values(),
                 self._paths[0].artist, self._paths[1].artist,
                 *[v['artist'] for v in self._vessels.values()],
+                # *[v['text'] for v in self._vessels.values()],
+                *[v['artist'] for v in self._polygons.values()],
+                *[v['artist'] for v in self.inputted_paths.values()],
+                *[v['artist'] for v in self.inputted_trajectories.values()],
+                *[v['artist'] for v in self.shadow_ships.values()],
                 self._ownship,
             ] if a
         ]
 
     @property
-    def animatedStatic(self):
+    def animatedRemovable(self):
         return [
             a for a in [
-                self._horizon,
-                *self._hazards.values(),
-                *self._arrows.values(),
-                self._paths[0].artist, self._paths[1].artist
-            ] if a
-        ]
-
-    @property
-    def animatedVessels(self):
-        return [
-            a for a in [
+                *[v['artist'] for v in self._polygons.values()],
+                *[v['artist'] for v in self.inputted_paths.values()],
+                *[v['artist'] for v in self.inputted_trajectories.values()],
+                *[v['artist'] for v in self.shadow_ships.values()],
                 *[v['artist'] for v in self._vessels.values()],
-                self._ownship,
-                *[v['artist'] for v in self.inputted_paths.values()],
-                *[v['artist'] for v in self.inputted_trajectories.values()],
-                *[v['artist'] for v in self.shadow_ships.values()],
-            ] if a
-        ]
-
-    @property
-    def animatedShadowShips(self):
-        return [
-            a for a in [
-                *[v['artist'] for v in self.shadow_ships.values()],
-            ] if a
-        ]
-
-    @property
-    def animatedPaths(self):
-        return [
-            a for a in [
-                *[v['artist'] for v in self.inputted_paths.values()],
-                *[v['artist'] for v in self.inputted_trajectories.values()],
-            ] if a
-        ]
-
-    @property
-    def animatedVesselsText(self):
-        return [
-            a for a in [
-                *[v['text'] for v in self._vessels.values()]
+                # *[v['text'] for v in self._vessels.values()],
             ] if a
         ]
 
@@ -170,7 +141,11 @@ class FeaturesManager:
             shape = [shape]
         for geometry in shape:
             geometry = spl.Area.new_polygon(geometry, interiors)
-            self.add_overlay(geometry, color, fill, linewidth, linestyle)
+            artist = self.add_overlay(geometry, color, fill, linewidth, linestyle)
+            artist.set_animated(True)
+            id = len(self._polygons)
+            self._polygons[f"polygon_nr_{id}"] = {}
+            self._polygons[f"polygon_nr_{id}"]["artist"] = artist
 
     def add_rectangle(self, center, size, color_name, rotation, fill,
                       linewidth, linestyle):

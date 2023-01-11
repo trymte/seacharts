@@ -131,15 +131,14 @@ class ENC(Node):
         t_i_plus_1 = datetime.datetime.now().timestamp() + 5000
         self.update_local_traffic()
         self._display.refresh_vessels(self.local_traffic, self.size, self.origin)
-        self._display.update_static_plot()
-        self._display.update_vessels_plot()
+        self._display.update_plot()
         while True:
             rclpy.spin_once(self, executor=self.executor, timeout_sec=0.01)
 
             self.draw_paths()
             self.update_trajectories()
             self.draw_polygons()
-            self._display.update_vessels_plot()
+            self._display.update_plot()
             delta_t = t_i_plus_1 - t_i
             if delta_t >= self.sim_callback_time:
                 # rclpy.spin_once(self, executor=self.executor, timeout_sec=0.01)
@@ -425,9 +424,10 @@ class ENC(Node):
         self._display.clean_plot()
         self._display.refresh_vessels(self.local_traffic, self.size, self.origin)
         # self._display.update_static_plot()
-        # self._display.update_vessels_plot()
+        # self._display.update_plot()
         self.local_traffic = {}
         self._display.features.inputted_paths = {}
+        self._display.features._polygons = {}
         self._display.features.inputted_trajectories = {}
         self._display.features.shadow_ships = {}
 

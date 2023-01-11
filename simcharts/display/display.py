@@ -154,19 +154,8 @@ class Display:
     def clean_plot(self):
         self.figure.canvas.restore_region(self._background)
         self.node.get_logger().debug("Cleaning entire plot")
-        self.remove_animated_paths()
-        self.draw_animated_artists()
-
-    def update_static_plot(self):
-        self.figure.canvas.restore_region(self._background)
-        self.node.get_logger().debug("Updating static plot")
-        self.draw_animated_static()
-
-    def update_vessels_plot(self):
-        self.figure.canvas.restore_region(self._background)
-        self.draw_animated_vessels()
-        if self.draw_names:
-            self.draw_animated_vessels_text()
+        self.remove_animated()
+        # self.draw_animated_artists()
 
     def draw_plot(self):
         try:
@@ -178,42 +167,16 @@ class Display:
 
     def draw_animated_artists(self):
         for artist in self.features.animated:
-            self.axes.draw_artist(artist)
+            if artist is not None:
+                self.axes.draw_artist(artist)
         try:
             self.figure.canvas.blit()
             self.figure.canvas.flush_events()
         except tk.TclError:
             plt.close()
 
-    def draw_animated_static(self):
-        for artist in self.features.animatedStatic:
-            self.axes.draw_artist(artist)
-        try:
-            self.figure.canvas.blit()
-            self.figure.canvas.flush_events()
-        except tk.TclError:
-            plt.close()
-
-    def draw_animated_vessels(self):
-        for artist in self.features.animatedVessels:
-            self.axes.draw_artist(artist)
-        try:
-            self.figure.canvas.blit()
-            self.figure.canvas.flush_events()
-        except tk.TclError:
-            plt.close()
-
-    def draw_animated_shadows(self):
-        for artist in self.features.animatedShadowShips:
-            self.axes.draw_artist(artist)
-        try:
-            self.figure.canvas.blit()
-            self.figure.canvas.flush_events()
-        except tk.TclError:
-            plt.close()
-
-    def remove_animated_paths(self):
-        for artist in self.features.animatedPaths:
+    def remove_animated(self):
+        for artist in self.features.animatedRemovable:
             artist.remove()
         try:
             self.figure.canvas.blit()
@@ -221,14 +184,6 @@ class Display:
         except tk.TclError:
             plt.close()
 
-    def draw_animated_vessels_text(self):
-        for artist in self.features.animatedVesselsText:
-            self.axes.draw_artist(artist)
-        try:
-            self.figure.canvas.blit()
-            self.figure.canvas.flush_events()
-        except tk.TclError:
-            plt.close()
 
     def draw_path(self, queue):
         for id, path_obj in queue.items():
