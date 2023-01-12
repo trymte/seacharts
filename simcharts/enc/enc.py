@@ -11,7 +11,8 @@ from simcharts.utils.helper import *
 from simcharts.display.colors import get_random_color_name
 from simcharts.nodes import LocalTrafficSubscriber
 from simcharts_interfaces.msg import Point, Polygon, Path, Trajectory
-from simcharts_interfaces.srv import GetStaticObstacles, GetDynamicObstacles, DrawPath, DrawTrajectory, AddVesselToLocalTraffic, CleanPlot, RemoveVesselFromLocalTraffic, DrawObstacleOverlay
+from simcharts_interfaces.srv import GetDynamicObstacles, GetStaticObstacles, GetUserDrawnSet, DrawPath, DrawTrajectory
+from simcharts_interfaces.srv import AddVesselToLocalTraffic, CleanPlot, RemoveVesselFromLocalTraffic, DrawObstacleOverlay
 
 
 class ENC(Node):
@@ -65,8 +66,9 @@ class ENC(Node):
         # ROS communication
         self.local_traffic_subscriber = LocalTrafficSubscriber()
         self.srv_callback_group = rclpy.callback_groups.ReentrantCallbackGroup()
-        self.static_obstacles_srv = self.create_service(GetStaticObstacles, 'simcharts__get_static_obstacles', self._get_static_obstacles_callback, callback_group=self.srv_callback_group)
         self.dynamic_obstacles_srv = self.create_service(GetDynamicObstacles, 'simcharts__get_dynamic_obstacles', self._get_dynamic_obstacles_callback, callback_group=self.srv_callback_group)
+        self.static_obstacles_srv = self.create_service(GetStaticObstacles, 'simcharts__get_static_obstacles', self._get_static_obstacles_callback, callback_group=self.srv_callback_group)
+        self.user_drawn_set_srv = self.create_service(GetUserDrawnSet, 'simcharts__get_user_drawn_set', self._get_user_drawn_set_callback, callback_group=self.srv_callback_group)
         self.draw_path_srv = self.create_service(DrawPath, 'simcharts__draw_path', self._draw_path_callback, callback_group=self.srv_callback_group)
         self.draw_trajectory_srv = self.create_service(DrawTrajectory, 'simcharts__draw_trajectory', self._draw_trajectory_callback, callback_group=self.srv_callback_group)
         self.draw_obstacle_overlay_srv = self.create_service(DrawObstacleOverlay, 'simcharts__draw_obstacle_overlay', self._draw_obstacle_overlay_callback, callback_group=self.srv_callback_group)
@@ -137,7 +139,7 @@ class ENC(Node):
 
             self.draw_paths()
             self.update_trajectories()
-            self.draw_polygons()
+            self.update_polygons()
             self._display.update_plot()
             delta_t = t_i_plus_1 - t_i
             if delta_t >= self.sim_callback_time:
@@ -265,7 +267,7 @@ class ENC(Node):
                 if id in self.draw_trajectories_queue:
                     del self.draw_trajectories_queue[id]
 
-    def draw_polygons(self):
+    def update_polygons(self):
         '''
         Draw polygons from the draw_polygon_queue
         '''
@@ -273,6 +275,8 @@ class ENC(Node):
         for _ in range(len(self.draw_polygon_queue)):
             polygon = self.draw_polygon_queue.pop(0)
             self.draw_polygon(polygon, color='blue', fill=True, thickness=2, edge_style='solid')
+        
+            
 
     def draw_arrow(
         self,
@@ -356,7 +360,10 @@ class ENC(Node):
         :param edge_style: str or tuple denoting the Matplotlib linestyle
         :return: None
         """
-        self._display.features.add_polygon(geometry, color, interiors, fill, thickness, edge_style)
+        artist = self._display.features.add_polygon(geometry, color, interiors, fill, thickness, edge_style)
+        id = len(self._display.features.polygons)
+        self._display.features.polygons[f"polygon_nr_{id}"] = {}
+        self._display.features.polygons[f"polygon_nr_{id}"]["artist"] = artist
 
     def draw_rectangle(
         self,
@@ -427,7 +434,7 @@ class ENC(Node):
         # self._display.update_plot()
         self.local_traffic = {}
         self._display.features.inputted_paths = {}
-        self._display.features._polygons = {}
+        self._display.features.polygons = {}
         self._display.features.inputted_trajectories = {}
         self._display.features.shadow_ships = {}
 
@@ -451,19 +458,6 @@ class ENC(Node):
             obstacles.append(polygon)
         self.static_obstacles = copy.deepcopy(obstacles)
 
-    def _get_static_obstacles_callback(self, request, response) -> None:
-        """
-        Callback function for the static obstacles service.
-        :param request: None
-        :return: None
-        """
-        self.get_logger().debug("Sending Static Obstacles...")
-        if self.static_obstacles == []: self._calc_static_obstacles()
-        response.timestamp = getTimeStamp(self.get_clock())
-        response.static_obstacles = copy.deepcopy(self.static_obstacles)
-        self.get_logger().debug("Sent Static Obstacles...")
-        return response
-    
     def _get_dynamic_obstacles_callback(self, request, response) -> None:
         """
         Callback function for the dynamic obstacles service.
@@ -494,6 +488,39 @@ class ENC(Node):
         response.timestamp = getTimeStamp(self.get_clock())
         response.dynamic_obstacles = obstacles
         self.get_logger().debug("Sent Dynamic Obstacles...")
+        return response
+
+    def _get_static_obstacles_callback(self, request, response) -> None:
+        """
+        Callback function for the static obstacles service.
+        :param request: None
+        :return: None
+        """
+        self.get_logger().debug("Sending Static Obstacles...")
+        if self.static_obstacles == []: self._calc_static_obstacles()
+        response.timestamp = getTimeStamp(self.get_clock())
+        response.static_obstacles = copy.deepcopy(self.static_obstacles)
+        self.get_logger().debug("Sent Static Obstacles...")
+        return response
+
+    def _get_user_drawn_set_callback(self, request, response) -> None:
+        """
+        Callback function for the user drawn set service.
+        :param request: None
+        :return: None
+        """
+        self.get_logger().debug("Sending User Drawn Set...")
+        response.timestamp = getTimeStamp(self.get_clock())
+        ext = self._display.features.polygons['main_set']['exterior_points']
+        exterior = pointlist_to_polygon(ext)
+        int = self._display.features.polygons['main_set']['interior_points']
+        interior = []
+        for i in int:
+            i = pointlist_to_polygon(i)
+            interior.append(i)
+        response.exterior = exterior
+        response.interior = interior
+        self.get_logger().debug("Sent User Drawn Set...")
         return response
     
     def _draw_path_callback(self, request: Path, response) -> None:
@@ -541,15 +568,13 @@ class ENC(Node):
         :param request: List[Polygon]
         :return: None
         """
-        self.get_logger().debug("Drawing Obstacle Overlay... NOT IMPLEMENTED YET")
-        # TODO: Implement this
+        self.get_logger().debug("Drawing Obstacle Overlay...")
         req_overlay = request.obstacle_overlay
         for pol in req_overlay:
             polygon = []
             for point in pol.points:
                 polygon.append((point.x, point.y))
             self.draw_polygon_queue.append(polygon)
-            # self.draw_polygon(polygon, color='blue', fill=True, thickness=2, edge_style='solid')
         return result
     
     def _add_vessel_callback(self, request, result):

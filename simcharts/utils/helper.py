@@ -1,6 +1,6 @@
 import datetime
 import copy
-from simcharts_interfaces.msg import Vessel
+from simcharts_interfaces.msg import Vessel, Polygon, Point
 
 def dictToList(dict):
     '''
@@ -36,3 +36,21 @@ def isInHorizon(vessel: Vessel, size, origin) -> bool:
     inHorizon =  (vessel.x < origin[0] + size[0] and vessel.x > origin[0] \
         and vessel.y < origin[1] + size[1] and vessel.y > origin[1])
     return inHorizon
+
+def pointlist_to_polygon(pointlist):
+    '''
+    Converts a list of points to a polygon
+
+    In:
+        pointlist: (List[[x,y], [x,y] ,...]) list of points
+    Out:
+        polygon: (Polygon) polygon
+    '''
+    polygon = Polygon()
+    polygon.points = []
+    for p in pointlist:
+        point = Point()
+        point.x = p[0]
+        point.y = p[1]
+        polygon.points.append(point)
+    return polygon

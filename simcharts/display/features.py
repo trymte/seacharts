@@ -24,13 +24,22 @@ class FeaturesManager:
         self._ownship = None
         self._horizon = None
         self._vessels = {}
-        self._polygons = {}
         self._hazards = {}
         self._arrows = {}
         self._seabeds = {}
         self.inputted_paths = {}
         self.inputted_trajectories = {}
         self.shadow_ships = {}
+
+        self.polygons = {}
+        self.polygons['main_set'] = {}
+        self.polygons['main_set']['artist'] = None
+        self.polygons['main_set']['geometry'] = None
+        self.polygons['main_set']['exterior_connected'] = False
+        self.polygons['main_set']['unconnected_interior_points'] = []
+        self.polygons['main_set']['exterior_points'] = []
+        self.polygons['main_set']['interior_points'] = []
+
         self._land = None
         self._shore = None
         self._init_layers()
@@ -45,7 +54,7 @@ class FeaturesManager:
                 self._paths[0].artist, self._paths[1].artist,
                 *[v['artist'] for v in self._vessels.values()],
                 # *[v['text'] for v in self._vessels.values()],
-                *[v['artist'] for v in self._polygons.values()],
+                *[v['artist'] for v in self.polygons.values()],
                 *[v['artist'] for v in self.inputted_paths.values()],
                 *[v['artist'] for v in self.inputted_trajectories.values()],
                 *[v['artist'] for v in self.shadow_ships.values()],
@@ -57,7 +66,7 @@ class FeaturesManager:
     def animatedRemovable(self):
         return [
             a for a in [
-                *[v['artist'] for v in self._polygons.values()],
+                *[v['artist'] for v in self.polygons.values()],
                 *[v['artist'] for v in self.inputted_paths.values()],
                 *[v['artist'] for v in self.inputted_trajectories.values()],
                 *[v['artist'] for v in self.shadow_ships.values()],
@@ -132,20 +141,19 @@ class FeaturesManager:
             artist = self.add_overlay(geometry, color_name, True, linewidth, linestyle)
             return artist
 
-    def add_polygon(self, shape, color, interiors, fill, linewidth, linestyle):
-        try:
-            shape = list(shape)
-        except TypeError:
-            shape = [shape]
-        if isinstance(shape[0], tuple) or isinstance(shape[0], list):
-            shape = [shape]
-        for geometry in shape:
-            geometry = spl.Area.new_polygon(geometry, interiors)
-            artist = self.add_overlay(geometry, color, fill, linewidth, linestyle)
-            artist.set_animated(True)
-            id = len(self._polygons)
-            self._polygons[f"polygon_nr_{id}"] = {}
-            self._polygons[f"polygon_nr_{id}"]["artist"] = artist
+    def add_polygon(self, geometry, color, interiors, fill, linewidth, linestyle):
+        # TODO: add support for main set as well
+        # try:
+        #     shape = list(shape)
+        # except TypeError:
+        #     shape = [shape]
+        # if isinstance(shape[0], tuple) or isinstance(shape[0], list):
+        #     shape = [shape]
+        # for geometry in shape:
+        geometry = spl.Area.new_polygon(geometry, interiors)
+        artist = self.add_overlay(geometry, color, fill, linewidth, linestyle)
+        artist.set_animated(True)
+        return artist, geometry
 
     def add_rectangle(self, center, size, color_name, rotation, fill,
                       linewidth, linestyle):

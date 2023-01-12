@@ -1,5 +1,5 @@
 from __future__ import annotations
-
+from shapely import geometry as geo
 import matplotlib.pyplot as plt
 import numpy as np
 import simcharts.display as dis
@@ -102,6 +102,13 @@ class EventsManager:
         elif event.key in self._resizing:
             if self._display.environment.ownship and self._display.features.show_ownship:
                 self._resize_hazards_horizon(event.key)
+        elif event.key == "ctrl+enter":
+            if self._display.features.polygons['main_set']['exterior_connected']:
+                if self._display.features.polygons['main_set']['unconnected_interior_points'] != []:
+                    self._display.features.polygons['main_set']['interior_points'].append(self._display.features.polygons['main_set']['unconnected_interior_points'])
+                    self._display.features.polygons['main_set']['unconnected_interior_points'] = []
+            else:
+                self._display.features.polygons['main_set']['exterior_connected'] = True
         elif event.key == "shift":
             self._shift_pressed = True
         elif event.key == "control":
@@ -177,15 +184,55 @@ class EventsManager:
             self._display.update_plot()
 
     def _click_press(self, event):
+        # TODO: Fix this
         if event.inaxes != self._display.axes:
             return
         if self._shift_pressed or self._control_pressed:
             if event.button in [plt.MouseButton.LEFT, plt.MouseButton.RIGHT]:
-                pick = event.xdata, event.ydata
+                pick = [event.xdata, event.ydata]
                 coords = pick if event.button == plt.MouseButton.LEFT else None
                 path = 1 if self._shift_pressed else 2
                 self._mouse_press = dict(x=pick[0], y=pick[1])
-                self._display.features.update_waypoints(path, pick, coords)
+
+                if self._display.features.polygons['main_set']['exterior_connected']:
+                    geometry = self._display.features.polygons['main_set']['geometry']
+                    p = geo.Point(pick[0], pick[1])
+                    if geometry.contains(p):
+                        self._display.features.polygons['main_set']['unconnected_interior_points'].append(pick)
+                        print(f"Interior waypoint added: {pick}")
+                else:
+                    self._display.features.polygons['main_set']['exterior_points'].append(pick)
+                    print(f"Exterior waypoint added: {pick}")
+
+                interior = self._display.features.polygons['main_set']['interior_points']
+                unconnected_interior = self._display.features.polygons['main_set']['unconnected_interior_points']
+                if interior == [] and unconnected_interior == []:
+                    interior = None
+                elif unconnected_interior != [] and len(unconnected_interior) >= 3:
+                    interior.append(unconnected_interior)
+
+
+                exterior = self._display.features.polygons['main_set']['exterior_points']
+                if len(exterior) < 3:
+                    exterior = None
+                
+                if exterior is not None:
+                    artist, geometry = self._display.features.add_polygon(
+                        exterior,
+                        color='blue',
+                        interiors=interior,
+                        fill=True,
+                        linewidth=2,
+                        linestyle='solid'
+                        )
+                    if self._display.features.polygons['main_set']['artist'] is not None:
+                        self._display.features.polygons['main_set']['artist'].remove()
+                    self._display.features.polygons['main_set']['artist'] = artist
+                    self._display.features.polygons['main_set']['geometry'] = geometry
+
+                # self._display.features.update_waypoints(path, pick, coords)
+
+
                 self._display.update_plot()
         else:
             if event.button == plt.MouseButton.LEFT:
