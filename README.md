@@ -191,7 +191,7 @@ From the root of you ROS 2 workspace directory `C:\\Users\\'user_name'\\ros2` ru
 ```shell
 call C:\dev\ros2_humble\local_setup.bat
 && 
-cd "C:\\Users\\sjlexau\\ros2_ws_win" 
+cd "C:\\Users\\'user_name'\\ros2_ws_win" 
 &&
 colcon build --merge install
 && 
