@@ -29,7 +29,7 @@ def getTimeStamp(clock=None):
         ts = float(f"{clock.now().to_msg().sec}.{clock.now().to_msg().nanosec}")
     return ts
 
-def isInHorizon(vessel: Vessel, size, origin) -> bool:
+def in_horizon(vessel: Vessel, size, origin) -> bool:
     '''
     Filters out all ships that are not in the vicinity of the origin
     '''

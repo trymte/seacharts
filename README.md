@@ -1,348 +1,339 @@
-# SimSeaCharts
-A ROS2 powered simulator, forked from SeaCharts
+# SimCharts
 
-# SeaCharts
-Python-based API for Electronic Navigational Charts (ENC)
+SimCharts is forked from the SeaCharts package written by Simon Blindheim and maintained by Trym Tengesdal. SeaCharts is a Python-based API for Electronic Navigational Charts (ENC).
+
+SimCharts is developed to be compatible with ROS 2 Humble to get the dvantages of ROS communication. SimCharts is intended to be used as a platform to visualize navigational algorithms for ASVs. SimCharts supply a set of services which can be used to extract staticobstacles from terrain data, represented as polygons. Further, the simulator supports live AIS data from BarentsWatch, which can be used to plot other vessels in the area, but also extract the polygonial shapes to be used for dynamic obstaces.
+
 
 [![platform](https://img.shields.io/badge/platform-windows-lightgrey)]()
 [![platform](https://img.shields.io/badge/platform-linux-lightgrey)]()
 [![python version](https://img.shields.io/badge/python-3.9-blue)]()
 [![license](https://img.shields.io/badge/license-MIT-green)]()
 
+  
+
 ## SeaCharts authors
+
 Simon Blindheim
 simon.blindheim@ntnu.no
 
 Trym Tengesdal
 trym.tengesdal@ntnu.no
 
-Forked from [Trym Tengesdals updated version][https://github.com/trymte/seacharts], which is based on [Simon Blindheims original version][https://github.com/simbli/seacharts]
 
-![](https://github.com/simbli/seacharts/blob/master/images/example1.svg?raw=True
-"Example visualization with demonstration shapes")
+
+## SimCharts authors
+
+Simon Lexau
+simon.lexau@ntnu.no
+
+![](https://github.com/Nagelsaker/simcharts/blob/master/examples/images/Path%20with%20live%20AIS.PNG?raw=true)
+
+Example visualization.  The blue area is the convex set used in a n optimization  A ghost ship is drawn with its corresponding trajectory as well as shadow ships showing the ship's orientation at different waypoints along the trajectory. The other vessels are drawn using live AIS data.
+
+  
 
 ## Features
 
-- Read and process spatial depth data from
-  [FileGDB](https://gdal.org/drivers/vector/filegdb.html) files into
-  shapefiles.
-- Access and manipulate standard geometric shapes such as points and polygon
-  collections.
+  
+- Read and process spatial depth data from [FileGDB](https://gdal.org/drivers/vector/filegdb.html) files into shapefiles.
+- Access and manipulate standard geometric shapes such as points and polygon collections.
 - Visualize colorful seacharts features and vessels using multiprocessing.
+- Visualize nearby vessels over live AIS messages
+- The simulator is accessible with ROS 2 services.
+- Extract static and dynamic obstacles as polygons.
+- Supports paths with shadow ships.
+- Live trajectory plotting, and trajectory playback.
+
+  
 
 ## Code style
 
-This module follows the [PEP8](https://www.python.org/dev/peps/pep-0008/)
-convention for Python code.
+This module follows the [PEP8](https://www.python.org/dev/peps/pep-0008/) convention for Python code.
 
-<!-- ## Prerequisites
 
-### Anaconda
-
-The simplest way to acquire the necessary dependencies for the SeaCharts
-package is to install an edition of the [Anaconda](
-https://www.anaconda.com/products/individual-d) package manager, and then
-create a new _conda environment_ with **Python 3.9** using e.g. the graphical
-user interface of [PyCharm Professional](
-https://www.jetbrains.com/lp/pycharm-anaconda/) as detailed [here](
-https://www.jetbrains.com/help/pycharm/conda-support-creating-conda-virtual-environment.html
-).
-
-The required data processing libraries for spatial calculations and
-visualization may subsequently be installed simply by running the following
-command in the terminal of your chosen environment:
-
-```
-conda install -c conda-forge fiona cartopy matplotlib
-```
-
-### Linux (Virtual Environment)
-
-First, ensure that you have gdal and geos libraries installed, as these are required in order to successfully install gdal and cartopy:
-```
-sudo apt-get install libgeos-dev libgdal-dev
-```
-Then, from the root folder you can install an editable version of the package as follows:
-```
-pip install -e .
-```
-This should preferably be done inside a virtual environment in order to prevent python packaging conflicts.
-
-### Pipwin (Windows)
-
-First, ensure that [Python 3.9](https://www.python.org/downloads/)
-(or another compatible version) and the required [C++ build tools](
-https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2019)
-are installed. In order to ensure that the correct version of Numpy+mkl linked
-to the [Intel® Math Kernel Library](
-https://software.intel.com/content/www/us/en/develop/tools/oneapi/components/onemkl.html#gs.31vx8p)
-is acquired, download the wheel according to your Python version and Windows
-platform from [here](
-https://www.lfd.uci.edu/~gohlke/pythonlibs/#numpy). Place the downloaded wheel
-file e.g. in the same directory the terminal is run from, and install it. The
-below snippet corresponds to Python 3.9 on Windows 64-bit:
-```
-pip install --upgrade pip
-pip install wheel
-pip install numpy-1.20.3+mkl-cp39-cp39-win_amd64.whl
-
-```
-
-The remaining required packages may be installed by the following:
-
-```
-pip install pipwin
-pipwin install gdal
-pipwin install scipy
-pipwin install fiona
-pipwin install shapely
-pipwin install cartopy
-pipwin install matplotlib
-
-```
-
-Simply copy and paste the entire block above (including the empty line) into
-the terminal of your virtual environment, and go get a cup of coffee while it
-does its thing.
 
 ## Installation
 
-After the necessary dependencies have been correctly installed, the SeaCharts
-package may be installed directly through the Python Package Index ([PyPI](
-https://pypi.org/
-)) by running the following command in the terminal:
+### Anaconda
+If you work with Anaconda you will need to speify the correct Python interpreter with shebang at the beginning of your script.
 
+### Linux
+Ubuntu v 22.04
+
+Install ROS 2 Humble
+``` shell
+sudo apt-get update && apt-get install -y \
+	curl \
+	gnupg2 \
+	lsb-release \
+	sudo \
+	&& curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg \
+	&& echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/ros2.list > /dev/null \
+	&& apt-get update && apt-get install -y \
+	ros-humble-ros-base \
+	python3-argcomplete \
+	&& rm -rf /var/lib/apt/lists/*
 ```
-pip install seacharts
+
+
+Install necessary ROS dependencies
+```Shell
+sudo apt-get update && apt-get install -y \
+	bash-completion \
+	build-essential \
+	cmake \
+	gdb \
+	git \
+	pylint \
+	python3-argcomplete \
+	python3-colcon-common-extensions \
+	python3-pip \
+	python3-rosdep \
+	python3-vcstool \
+	vim \
+	wget \
+	ros-humble-ament-lint \
+	ros-humble-launch-testing \
+	ros-humble-launch-testing-ament-cmake \
+	ros-humble-launch-testing-ros \
+	python3-autopep8 \
+	&& rm -rf /var/lib/apt/lists/* \
+	&& rosdep init || echo "rosdep already initialized" \
+	&& pip install --upgrade pydocstyle
 ```
 
-or locally inside the seacharts root folder as an editable package with `pip install -e .`
+Install the full ROS 2 Humble release
+```Shell
+sudo apt-get update && apt-get install -y \
+	ros-humble-desktop \
+	&& rm -rf /var/lib/apt/lists/*
+```
 
-![](https://github.com/simbli/seacharts/blob/master/images/example2.svg?raw=True
-"Example visualization with default settings")
+Install python dependencies
+```Shell
+sudo apt install -y libgeos++-dev libgeos3.10.2 libgeos-c1v5 libgeos-dev libgeos-doc \
+	&& sudo apt-get install -y python3-pil python3-pil.imagetk \
+	&& pip install --no-input matplotlib \
+	&& pip install --no-input Shapely==1.8.4 \
+	&& pip install --no-input cerberus \
+	&& pip install --no-input pyproj \
+	&& pip install --no-input Fiona \
+	&& pip install --no-input pyshp \
+	&& pip install --no-input Pillow \
+	&& pip install --no-input pykdtree \
+	&& pip install --no-input SciPy \
+	&& pip install --no-input OWSLib==0.18 \
+	&& pip install --no-input cartopy \
+	&& sudo apt-get -y install openssh-server \
+	&& pip install --no-input pyqt5 \
+	&& apt-get install -y python3-gi python3-gi-cairo gir1.2-gtk-3.0
+```
 
-## Usage
+Navigate to your ROS 2 workspace directory and clone the following ros packages into the `/src/` folder
+```shell
+git clone git@github.com:Nagelsaker/simcharts.git
+git clone git@github.com:Nagelsaker/simcharts_interfaces.git
+```
 
-This module supports reading and processing `FGDB` files for sea depth data
-such as the Norwegian coastal data set used for demonstration purposes, found
-[here](
-https://kartkatalog.geonorge.no/metadata/2751aacf-5472-4850-a208-3532a51c529a). -->
+If you want to plot vessels with live AIS data, you also need to clone SimCharts AIS Forwarder
+```shell
+git clone git@github.com:Nagelsaker/simcharts_aisforwarder.git
+```
+
+From the root of you ROS 2 workspace directory, run the following line to build the simulator
+
+```shell
+source /opt/ros/humble/local_setup.bash
+colcon build --merge-all
+source install/local_setup.bash
+```
+
+
+
+## Windows
+
+Install ROS 2 Humble from [here](https://docs.ros.org/en/humble/Installation/Alternatives/Windows-Development-Setup.html), follow the instructions given. This tutorial assumes you installed ROS 2 Humble to `C:\\dev\\ros2_humble`
+
+Create a workspace directory anywhere, for example `C:\\Users\\'user_name'\\ros2`
+Inside of which, you need to create a folder called `src`
+
+Install Python 3.8, Pip and Git
+Install the following Python packages with Pip
+
+```Shell
+pip install --no-input matplotlib
+	&& pip install --no-input Shapely==1.8.4
+	&& pip install --no-input cerberus
+	&& pip install --no-input pyproj
+	&& pip install --no-input Fiona
+	&& pip install --no-input pyshp
+	&& pip install --no-input Pillow
+	&& pip install --no-input pykdtree
+	&& pip install --no-input SciPy
+	&& pip install --no-input OWSLib==0.18
+	&& pip install --no-input cartopy
+	&& pip install --no-input pyqt5
+```
+
+Navigate to your ROS 2 workspace directory and clone the following ros packages into the `/src/` folder
+```shell
+git clone git@github.com:Nagelsaker/simcharts.git
+git clone git@github.com:Nagelsaker/simcharts_interfaces.git
+```
+
+If you want to plot vessels with live AIS data, you also need to clone SimCharts AIS Forwarder
+```shell
+git clone git@github.com:Nagelsaker/simcharts_aisforwarder.git
+```
+
+From the root of you ROS 2 workspace directory `C:\\Users\\'user_name'\\ros2` run the following line to build the simulator
+```shell
+call C:\dev\ros2_humble\local_setup.bat
+&& 
+cd "C:\\Users\\sjlexau\\ros2_ws_win" 
+&&
+colcon build --merge install
+&& 
+call install/local_setup.bat
+```
+
+You might also have to run
+```Shell
+call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvarsall.bat" x86_amd64  
+```
+
+and
+```Shell
+set RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+```
+
+if you run into errors in this step.
+
+
+
+# Running SimCharts
+
+This module supports reading and processing `FGDB` files for sea depth data such as the Norwegian coastal data set used for demonstration purposes, found [here](https://kartkatalog.geonorge.no/metadata/2751aacf-5472-4850-a208-3532a51c529a)
+
 
 ### Downloading regional datasets
+Follow the above link to download the `Depth data` (`Sjøkart - Dybdedata`) dataset from the [Norwegian Mapping Authority](https://kartkatalog.geonorge.no/?organization=Norwegian%20Mapping%20Authority), by adding it to the Download queue and navigating to the separate [download page](https://kartkatalog.geonorge.no/nedlasting). Choose one or more county areas (e.g. `Trøndelag`), and select the `EUREF89 UTM sone 33, 2d` (`UTM zone 33N`) projection and `FGDB 10.0` format. Finally, select your appropriate user group and purpose, and click `Download` to obtain the ZIP file(s).
 
-Follow the above link to download the `Depth data` (`Sjøkart - Dybdedata`)
-dataset from the [Norwegian Mapping Authority](
-https://kartkatalog.geonorge.no/?organization=Norwegian%20Mapping%20Authority),
-by adding it to the Download queue and navigating to the separate
-[download page](https://kartkatalog.geonorge.no/nedlasting). Choose one or more
-county areas (e.g. `Møre og Romsdal`), and select the
-`EUREF89 UTM sone 33, 2d` (`UTM zone 33N`) projection and `FGDB 10.0`
-format. Finally, select your appropriate user group and purpose, and click
-`Download` to obtain the ZIP file(s).
+Unpack the downloaded file(s) and place the extracted `.gdb` in the `simcharts/data/external/` directory, where the top-level folder `data` is located in the same directory as the launch files.
 
-### Processing ENC data into shapefiles
-Unpack the downloaded file(s) and place the extracted `.gdb` in the
-`data/external/` directory, where the top-level folder `data` is located in the
-same directory as the executing script.
+The `config.yaml` file specifies what ENC data to load and how it will be processed and displayed. The corresponding `config_schema.yaml` specifies the required parameters that must be provided for the software to function properly.
 
-The `config.yaml` file specifies what ENC data to load and how it will be processed and displayed.
-The corresponding `config_schema.yaml` specifies the required parameters that must be provided for the software to function properly.
-
-The minimal example below imports the `ENC` class from `seacharts.enc` with the default configuration under `seacharts/config.yaml`, and
-shows the interactive seachart display.
-
-```python
-if __name__ == '__main__':
-
-    from seacharts.enc import ENC
-
-    enc = ENC()
-    enc.show_display()
+SimCharts can then be started by running:
+```shell
+ros2 run simcharts simcharts
 ```
 
-You can also specify settings at run-time, such as the window size, coordinate (easting, northing) origin and file
-to load shapefile data from, and whether or not to load new data. Here, the
-`new_data` keyword argument must be set to `True` during the
-initial setup run, and/or for any subsequent desired re-parsing in order
-to unpack and store `ENC` features from the downloaded FGDB files as
-shapefiles:
-
-```python
-if __name__ == '__main__':
-
-    from seacharts.enc import ENC
-
-    size = 9000, 5062                # w, h (east, north) distance in meters
-    center = 44300, 6956450          # easting/northing (UTM zone 33N)
-    files = ['More_og_Romsdal.gdb']  # Norwegian county database name
-
-    enc = ENC(size=size, center=center, files=files, new_data=True)
-
-```
-Note that all `ENC` settings parameters may be set and modified directly in
-`data/config.ini`, wherein user settings are saved alongside the project
-defaults. Parameters passed to `ENC` overrides the defaults of the
-configuration file. See the documentation of the `ENC` input parameters for
-descriptions of all available configuration settings.
-
-
-![](https://github.com/simbli/seacharts/blob/master/images/example3.svg?raw=True
-"Example visualization with dark mode and ownship hazards")
-
-
-### API usage and accessing geometric shapes
-After the spatial data is parsed into shapefiles as shown above, geometric
-shapes based on the [Shapely](https://pypi.org/project/Shapely/) library may
-be accessed and manipulated through various `ENC` attributes. The seacharts
-feature layers are stored in `seabed`, `shore` and `land`.
-
-```python
-if __name__ == '__main__':
-
-    import seacharts
-
-    enc = seacharts.ENC(new_data=False)
-
-    print(enc.seabed[10])
-    print(enc.shore)
-    print(enc.land)
-
-```
-Note how the `new_data` argument may be set to `False` (or omitted) if the
-desired regional spatial data has already been unpacked and processed into
-shapefiles in a previous call. Additionally, the `size`, `center` or `origin`
-parameters may be different from the one used to extract the external `ENC`
-data, allowing for loading of more specific (smaller) areas of interest into
-memory during runtime.
-
-See the documentation for each top-level ENC method for all API usage and
-visualization possibilities currently available to the SeaCharts package.
-
-
-![](https://github.com/simbli/seacharts/blob/master/images/example4.svg?raw=True
-"Example visualization with zoom and paths")
-
-
-### Interactive environment visualization
-The `ENC.show_display` method is used to show a Matplotlib figure plot of the
-loaded seacharts features. Zoom and pan the environment view using the mouse
-scroll button, and holding and dragging the plot with left click, respectively.
-
-Fullscreen mode may be toggled using the `f` key, and dark mode may be toggled
-using the `d` key. An optional colorbar showing the various depth legends may
-be toggled using the `c` key. Moreover, the visibility of each individual layer
-may be toggled on and off using the `t`, `g`,`h`, `b`, and `l` keys. Press and
-hold the left `Alt` key and press any of the arrow keys to move the anchor of
-the figure window.
-
-A controllable ownship with a sector horizon of hazards and arrows pointing to
-the closest point on a polygon within it may be added and toggled through the
-`o`, `z` and `a` keys, respectively. Steer the ship with the arrows keys.
-
-The filter depths of the displayed hazardous obstacles may be toggled using the
-`n` and `m` keys, and the size of the horizon may be altered using `,`, `.`,
-`[`, and `]` (on a US keyboard layout). Furthermore, vessels may be added and
-shown by passing appropriately formatted vessel poses to the `ENC.add_vessels`
-method, or manually storing the vessel details in `data/vessels.csv` and
-pressing the `u` key to update the display. Toggle their visibility through the
-`v` key.
-
-Shift left-click on the environment to add yellow path waypoints, move them
-around by pressing Shift and holding down the mouse button, and Shift right-
-click to remove them. One may also Shift right-click on a path edge to create
-an intermediate waypoint between two existing waypoints. Additionally, a
-second path of magenta color may be added and manipulated by replacing Shift
-with the Control key.
-
-Images of the currently shown display may be saved in various resolutions by
-pressing Control + `s`, Shift + `s` or `s`. The below snippet produces the
-example usage visualization images shown at the top of this page, assuming
-default settings and that a `More_og_Romsdal.gdb` directory is correctly
-extracted and placed as discussed in the shapefile processing section:
-
-```python
-if __name__ == '__main__':
-
-    import seacharts
-
-    size = 9000, 5062
-    center = 44300, 6956450
-    enc = seacharts.ENC(border=True)
-
-    # (id, easting, northing, heading, color)
-    ships = [
-        (1, 46100, 6957000, 132, 'orange'),
-        (2, 45000, 6956000, 57, 'yellow'),
-        (3, 44100, 6957500, 178, 'red'),
-        (4, 42000, 6955200, 86, 'green'),
-        (5, 44000, 6955500, 68, 'pink'),
-    ]
-
-    enc.add_vessels(*ships)
-
-    import shapely.geometry as geo
-
-    x, y = center
-    width, height = 1900, 1900
-    box = geo.Polygon((
-        (x - width, y - height),
-        (x + width, y - height),
-        (x + width, y + height),
-        (x - width, y + height),
-    ))
-    areas = list(box.difference(enc.seabed[10].geometry))
-    enc.draw_circle(center, 1000, 'yellow', thickness=2,
-                    edge_style='--')
-    enc.draw_rectangle(center, (600, 1200), 'blue', rotation=20)
-    enc.draw_circle(center, 700, 'green', edge_style=(0, (5, 8)),
-                    thickness=3, fill=False)
-    enc.draw_line([(center[0], center[1] + 800), center,
-                   (center[0] - 300, center[1] - 400)], 'white')
-    enc.draw_line([(center[0] - 300, center[1] + 400), center,
-                   (center[0] + 200, center[1] - 600)],
-                  'magenta', width=0.0, thickness=5.0,
-                  edge_style=(0, (1, 4)))
-    enc.draw_arrow(center, (center[0] + 700, center[1] + 600), 'orange',
-                   head_size=300, width=50, thickness=5)
-    enc.draw_polygon(enc.seabed[100].geometry[-3], 'cyan')
-    enc.draw_polygon(enc.shore.geometry[56], 'highlight')
-    for area in areas[3:8] + [areas[14], areas[17]] + areas[18:21]:
-        enc.draw_polygon(area, 'red')
-    enc.draw_rectangle(center, (width, height), 'pink', fill=False,
-                       edge_style=(0, (10, 10)), thickness=1.5)
-
-    enc.save_image('example1', extension='svg')
-
-    enc.show_display()
-
+To plot live AIS data run:
+```Shell
+ros2 run simcharts local_traffic_node
 ```
 
-The `id` values of the vessel details should be unique identifiers, used as
-references to the feature artists added to the Matplotlib plot. The color
-values may be strings of one of the custom ship colors of this package, or any
-named Matplotlib [CSS4 color](
-https://matplotlib.org/stable/gallery/color/named_colors.html).
+Alternatively you can also run the nodes in debug mode:
+```Shell
+ros2 run simcharts simcharts --ros-args --log-level simcharts__node:=DEBUG
 
-### Visualization using multiprocessing
-Initializing an `ENC` instance with the `multiprocessing` parameter set to
-`True` spawns a `Process` thread from the Python standard library
-[multiprocessing module](
-https://docs.python.org/3/library/multiprocessing.html), creating an
-independent environment display running an infinite visualization loop, based
-on the current user (or default) settings stored in the `data/config.ini` file.
-The visualization loop continuously reads the `data/vessels.csv` file, and
-updates the plot with any present vessels. Repeated updating of the vessels
-file by any arbitrary alternative method is thus reflected in the plot in near
-real-time. As such, this feature may be utilized for parallel or concurrent
-visualization of vessels in an environment, e.g. based on vessel trajectories
-produced by a separate and independent simulation or optimization algorithm.
+ros2 run simcharts local_traffic_node --ros-args --log-level simcharts__local_traffic_node:=DEBUG
+```
 
 
-## Contributors
+# Usage
 
-- Simon Blindheim ([simon.blindheim@ntnu.no](mailto:simon.blindheim@ntnu.no))
-- Trym Tengesdal ([trym.tengesdal@ntnu.no](mailto:trym.tengesdal@ntnu.no))
-- Simon Lexau ([simon.lexau@ntnu.no](mailto:simon.lexau@ntnu.no))
+SimCharts uses ROS 2 for communicating through topics and services. To plot your vessels, and their corresponding paths/trajectories you need to implement clients for the respective services listed below.
+
+| Service                          | Input                                                    | Output                                                                    | Comment                                                                               |
+| -------------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| simcharts__get_dynamic_obstacles | -                                                        | (string) timestamp <br /> (Polygon) dynamic_obstacles                     | Retrieves the coordinates of other vessels's boundaries                               |
+| simcharts__get_static_obstacles  | -                                                        | (string) timestamp <br /> (Polygon) static_obstacles                      | Retrieves coordinates of terrain polygons                                             |
+| simcharts__get_user_drawn_set    | -                                                        | (float64) timestamp <br /> (Polygon) exterior <br /> (Polygon[]) interior | Retrieves coordinates of the user drawn polygon                                       |
+| simcharts__draw_path             | (int64) id <br /> (int64) nrofshadows <br /> (Path) path | -                                                                         | Draws the path for the specified vessel, with nrofshadows shadows vessels             |
+| simcharts__draw_trajectory       | (int64) id <br /> (Trajectory) trajectory                | -                                                                         | Draws the trajectory of specified vessel                                              |
+| simcharts__draw_obstacle_overlay | (Polygon[]) obstacle_overlay                             | -                                                                         | Draws a custom obstacle overlay to mark obstacles not given in the map                |
+| simcharts__add_vessel            | (Vessel) vessel                                          | (bool) was_added                                                          | Adds a vessel to the simulator                                                        |
+| simcharts__remove_vessel         | (int64) id                                               | (Vessel) vessel <br /> (bool) was_removed                                 | Removes specified vessel from the simulator                                           |
+| simcharts__clean_plot            | -                                                        | -                                                                         | Removes paths, trajectories, obstacle overlays and user drawn sets from the simulator |
+
+
+The custom datatypes are defined as messages, and presented in the following table
+
+| Message       | Parameters                                                                                                                                                                                                                                                                                                         | Comment |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------- |
+| AIS           | (int64) mmsi <br /> (string) timestamp <br /> (float64) longitude <br /> (float64) latitude <br /> (string) sog <br /> (string) cog <br /> (string) heading <br /> (string) rot <br /> (string) name <br /> (string) shiptype                                                                                      |         |
+| ListOfAIS     | (float64) timestamp <br /> (AIS[]) ais_msgs                                                                                                                                                                                                                                                                        |         |
+| ListOfVessels | (string) timestamp <br /> (Vessel[]) local_traffic                                                                                                                                                                                                                                                                 |         |
+| Path          | (float64[]) x <br /> (float64[]) y <br /> (float64) psi                                                                                                                                                                                                                                                            |         |
+| Point         | (float64) x <br /> (float64) y                                                                                                                                                                                                                                                                                     |         |
+| Polygon       | (Point[]) points                                                                                                                                                                                                                                                                                                   |         |
+| Trajectory    | (float64[]) x <br /> (float64[]) y <br /> (float64[]) psi <br /> (float64[]) t                                                                                                                                                                                                                                     |         |
+| Vessel        | (int64) id <br /> (string) timestamp <br /> (float64) x <br /> (float64) y <br /> (float64) sog <br /> (float64) sog <br /> (float64) cog <br /> (float64) heading <br /> (float64) length <br /> (float64) scale <br /> (float64) rot <br /> (string) name <br /> (string) shiptype <br /> (string) vesselsimtype |         |
+|               |                                                                                                                                                                                                                                                                                                                    |         |
+
+
+This simple example shows how to draw a path
+
+```Python
+import rclpy
+from rclpy.node import Node
+from simcharts_interfaces.msg import Path, Vessel
+from simcharts_interfaces.srv import DrawPath
+
+class MinimalClient(Node):
+
+    def __init__(self):
+        super().__init__('minimal_client')
+        draw_path_cli = self.create_client(DrawPath, 'simcharts__draw_path')
+        while not self.cli.wait_for_service(timeout_sec=1.0):
+            self.get_logger().info('service not available, waiting again...')
+        self.req = DrawPath.Request()
+
+    def send_request(self, path: Path, id: int = None, nrOfShadows: int = 5) -> None:
+		req = DrawPath.Request()
+		req.path = path
+		req.nrofshadows = nrOfShadows
+		req.id = id
+		self.future = self.draw_path_cli.call_async(req)
+		rclpy.spin_until_future_complete(self, self.future)
+		return self.future.result()
+
+def main():
+    rclpy.init()
+	# Path Object to be added to local traffic
+	path = Path()
+	path.x = [1,2,3,4,5]
+	path.y = [1,2,3,4,5]
+	path.psi = [1,2,3,4,5]
+	nrOfShadows = 5
+	
+	# Vessel Object to be added to local traffic
+	vessel = Vessel()
+	vessel.id = 1001
+	vessel.timestamp = "0"
+	vessel.x = path.x[0]
+	vessel.y = path.y[0]
+	vessel.sog = 0.0
+	vessel.cog = path.psi[0]
+	vessel.heading = path.psi[0]
+	vessel.length = 76.2
+	vessel.scale = 0.9525
+	vessel.rot = 0.0
+	vessel.name = "not_implemented_yet"
+	vessel.shiptype = "not_implemented_yet"
+	vessel.vesselsimtype = "not_implemented_yet"
+    
+    minimal_client = MinimalClient()
+    response = minimal_client.send_request(path, vessel.id, nrOfShadows)
+    minimal_client.destroy_node()
+    rclpy.shutdown()
+
+if __name__ == '__main__':
+    main()
+```
+
 
 
 ## License

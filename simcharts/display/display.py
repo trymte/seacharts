@@ -99,7 +99,7 @@ class Display:
         subplot_spacing = sub1, sub2
         # enable interactive mode
         plt.ion()
-        figure = plt.figure('SeaCharts', figsize=figure_sizes[0], dpi=self._dpi)
+        figure = plt.figure('SimCharts', figsize=figure_sizes[0], dpi=self._dpi)
         if not self._fullscreen_mode:
             figure.canvas.toolbar.pack_forget()
         return figure, figure_sizes, subplot_spacing, axes_widths
@@ -252,7 +252,7 @@ class Display:
                     self.node.local_traffic[id].x = traversed_traj[-1][0]
                     self.node.local_traffic[id].y = traversed_traj[-1][1]
                     self.node.local_traffic[id].heading = traversed_traj[-1][2]
-                    self.features.update_vessels(self.node.local_traffic[id])
+                    self.features.update_vessels(self.node.local_traffic[id], self.node.size, self.node.origin)
                     self.node.get_logger().debug(f"Ship with id {id} has a heading of {traversed_traj[-1][2]}")
 
             if len_trav_traj == len_full_traj:

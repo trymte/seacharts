@@ -360,7 +360,7 @@ class ENC(Node):
         :param edge_style: str or tuple denoting the Matplotlib linestyle
         :return: None
         """
-        artist = self._display.features.add_polygon(geometry, color, interiors, fill, thickness, edge_style)
+        artist, _ = self._display.features.add_polygon(geometry, color, interiors, fill, thickness, edge_style)
         id = len(self._display.features.polygons)
         self._display.features.polygons[f"polygon_nr_{id}"] = {}
         self._display.features.polygons[f"polygon_nr_{id}"]["artist"] = artist
@@ -434,7 +434,7 @@ class ENC(Node):
         # self._display.update_plot()
         self.local_traffic = {}
         self._display.features.inputted_paths = {}
-        self._display.features.polygons = {}
+        self._display.features.reset_polygons()
         self._display.features.inputted_trajectories = {}
         self._display.features.shadow_ships = {}
 

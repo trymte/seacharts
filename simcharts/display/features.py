@@ -155,6 +155,16 @@ class FeaturesManager:
         artist.set_animated(True)
         return artist, geometry
 
+    def reset_polygons(self):
+        self.polygons = {}
+        self.polygons['main_set'] = {}
+        self.polygons['main_set']['artist'] = None
+        self.polygons['main_set']['geometry'] = None
+        self.polygons['main_set']['exterior_connected'] = False
+        self.polygons['main_set']['unconnected_interior_points'] = []
+        self.polygons['main_set']['exterior_points'] = []
+        self.polygons['main_set']['interior_points'] = []
+
     def add_rectangle(self, center, size, color_name, rotation, fill,
                       linewidth, linestyle):
         geometry = spl.Rectangle(
@@ -304,7 +314,10 @@ class FeaturesManager:
         In:
             vessels: (Dict(Vessel)) Dict of Vessel messages
         '''
-        # if self.show_vessels:
+        if not isinstance(vessels, dict): 
+            upd_vessel = self._update_vessel(vessels)
+            self._vessels[vessels.id] = upd_vessel
+            return
         new_vessels = {}
         for vessel in vessels.values():
             if not in_horizon(vessel, size, origin): continue
