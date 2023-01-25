@@ -57,25 +57,31 @@ This module follows the [PEP8](https://www.python.org/dev/peps/pep-0008/) conven
 
 ### Windows - Anaconda
 
-Install Anaconda
+#### Install Anaconda
 Create a python 3.8 environment
 ```Shell
 conda create --name simcharts_env python=3.8
 ```
 
-Next you need to add your environment's python version to the system path.
-Go to `Start` --> Search for `Edit The system environment variables` --> `Environment Variables...`
-If you see `PYTHONPATH` click `Edit...` under user variables, if you don't see it click `New...` instead.
-
-Remember to add a correct shebang to top of the files serving as entrypoints of your python scripts, including ROS launch files
+#### Add shebang
+Remember to add a correct shebang to top of the files serving as entrypoints of your python scripts, including ROS launch files. This is the only way of telling ROS which Python environment you intend to use.
 `#!/usr/bin/env conda activate simcharts_env`
+
+#### Install ROS 2 Humble
+Install ROS 2 Humble from [here](https://docs.ros.org/en/humble/Installation/Alternatives/Windows-Development-Setup.html), follow the instructions given. This tutorial assumes you installed ROS 2 Humble to `C:\\dev\\ros2_humble`
+
+Create a workspace directory anywhere, for example `C:\\Users\\'user_name'\\ros2`
+Inside of which, you need to create a folder called `src`
+
+#### Install Python & packages
+Install Python 3.8, Pip and Git
 
 Install Cartopy dependencies
 ```Shell
 conda install pyshp pykdtree cerberus geos==3.8.0 owslib==0.18 matplotlib==3.4.3
 ```
 
-Go to this page, scroll down and download the following files:
+Go to [this](https://www.lfd.uci.edu/~gohlke/pythonlibs/) page, scroll down and download the following files:
 `Shapely‑1.8.2‑cp38‑cp38‑win_amd64.whl`
 `pyproj‑3.3.1‑cp38‑cp38‑win_amd64.whl`
 `GDAL‑3.4.3‑cp38‑cp38‑win_amd64.whl`
@@ -84,20 +90,51 @@ Go to this page, scroll down and download the following files:
 `Pillow‑9.1.1‑cp38‑cp38‑win_amd64.whl`
 `Cartopy‑0.20.2‑cp38‑cp38‑win_amd64.whl`
 
-Navigate to the download folder from a terminal and run:
+Navigate to the download folder from a cmd shell and run:
 ```Shell
 pip install Shapely‑1.8.2‑cp38‑cp38‑win_amd64.whl 
-& pip install pyproj‑3.3.1‑cp38‑cp38‑win_amd64.whl 
-& pip install GDAL‑3.4.3‑cp38‑cp38‑win_amd64.whl 
-& pip install Fiona‑1.8.21‑cp38‑cp38‑win_amd64.whl 
-& pip install numpy‑1.22.4+mkl‑cp38‑cp38‑win_amd64.whl 
-& pip instll Pillow‑9.1.1‑cp38‑cp38‑win_amd64.whl
+pip install pyproj‑3.3.1‑cp38‑cp38‑win_amd64.whl 
+pip install GDAL‑3.4.3‑cp38‑cp38‑win_amd64.whl 
+pip install Fiona‑1.8.21‑cp38‑cp38‑win_amd64.whl 
+pip install numpy‑1.22.4+mkl‑cp38‑cp38‑win_amd64.whl 
+pip instll Pillow‑9.1.1‑cp38‑cp38‑win_amd64.whl
 ```
 
-Install Cartopy
+Next, install Cartopy
 ```Shell
 pip install Cartopy‑0.20.2‑cp38‑cp38‑win_amd64.whl
 ```
+
+#### Install ROS packages
+Navigate to your ROS 2 workspace directory and clone the following ros packages into the `/src/` folder
+```shell
+git clone git@github.com:Nagelsaker/simcharts.git
+git clone git@github.com:Nagelsaker/simcharts_interfaces.git
+```
+
+If you want to plot vessels with live AIS data, you also need to clone SimCharts AIS Forwarder
+```shell
+git clone git@github.com:Nagelsaker/simcharts_aisforwarder.git
+```
+
+From the root of you ROS 2 workspace directory `C:\\Users\\'user_name'\\ros2` run the following line to build the simulator
+```shell
+call C:\dev\ros2_humble\local_setup.bat
+cd "C:\\Users\\'user_name'\\ros2_ws_win"
+colcon build --merge install
+call install/local_setup.bat
+```
+
+You might also have to run one, or both, of these commands if you run into errors in this step:
+```Shell
+call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvarsall.bat" x86_amd64  
+```
+
+
+```Shell
+set RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+```
+
 
 
 ### Linux
@@ -190,68 +227,6 @@ source /opt/ros/humble/local_setup.bash
 colcon build --merge-all
 source install/local_setup.bash
 ```
-
-
-
-## Windows
-
-Install ROS 2 Humble from [here](https://docs.ros.org/en/humble/Installation/Alternatives/Windows-Development-Setup.html), follow the instructions given. This tutorial assumes you installed ROS 2 Humble to `C:\\dev\\ros2_humble`
-
-Create a workspace directory anywhere, for example `C:\\Users\\'user_name'\\ros2`
-Inside of which, you need to create a folder called `src`
-
-Install Python 3.8, Pip and Git
-Install the following Python packages with Pip
-
-```Shell
-pip install --no-input matplotlib
-	&& pip install --no-input Shapely==1.8.4
-	&& pip install --no-input cerberus
-	&& pip install --no-input pyproj
-	&& pip install --no-input Fiona
-	&& pip install --no-input pyshp
-	&& pip install --no-input Pillow
-	&& pip install --no-input pykdtree
-	&& pip install --no-input SciPy
-	&& pip install --no-input OWSLib==0.18
-	&& pip install --no-input cartopy
-	&& pip install --no-input pyqt5
-```
-
-Navigate to your ROS 2 workspace directory and clone the following ros packages into the `/src/` folder
-```shell
-git clone git@github.com:Nagelsaker/simcharts.git
-git clone git@github.com:Nagelsaker/simcharts_interfaces.git
-```
-
-If you want to plot vessels with live AIS data, you also need to clone SimCharts AIS Forwarder
-```shell
-git clone git@github.com:Nagelsaker/simcharts_aisforwarder.git
-```
-
-From the root of you ROS 2 workspace directory `C:\\Users\\'user_name'\\ros2` run the following line to build the simulator
-```shell
-call C:\dev\ros2_humble\local_setup.bat
-&& 
-cd "C:\\Users\\'user_name'\\ros2_ws_win" 
-&&
-colcon build --merge install
-&& 
-call install/local_setup.bat
-```
-
-You might also have to run
-```Shell
-call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvarsall.bat" x86_amd64  
-```
-
-and
-```Shell
-set RMW_IMPLEMENTATION=rmw_fastrtps_cpp
-```
-
-if you run into errors in this step.
-
 
 
 # Running SimCharts
