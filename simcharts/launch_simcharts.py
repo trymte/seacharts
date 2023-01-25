@@ -1,3 +1,4 @@
+#!/usr/bin/env conda run -n simcharts_env
 import rclpy
 from simcharts.enc import ENC
 import simcharts.utils as utils

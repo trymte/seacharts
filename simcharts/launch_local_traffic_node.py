@@ -1,3 +1,4 @@
+#!/usr/bin/env conda activate simcharts_env
 import rclpy
 import threading
 import simcharts.utils as utils

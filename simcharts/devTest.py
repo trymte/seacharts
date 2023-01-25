@@ -1,3 +1,4 @@
+#!/usr/bin/env conda run -n simcharts_env
 import rclpy
 from rclpy.node import Node
 import numpy as np

@@ -55,8 +55,50 @@ This module follows the [PEP8](https://www.python.org/dev/peps/pep-0008/) conven
 
 ## Installation
 
-### Anaconda
-If you work with Anaconda you will need to speify the correct Python interpreter with shebang at the beginning of your script.
+### Windows - Anaconda
+
+Install Anaconda
+Create a python 3.8 environment
+```Shell
+conda create --name simcharts_env python=3.8
+```
+
+Next you need to add your environment's python version to the system path.
+Go to `Start` --> Search for `Edit The system environment variables` --> `Environment Variables...`
+If you see `PYTHONPATH` click `Edit...` under user variables, if you don't see it click `New...` instead.
+
+Remember to add a correct shebang to top of the files serving as entrypoints of your python scripts, including ROS launch files
+`#!/usr/bin/env conda activate simcharts_env`
+
+Install Cartopy dependencies
+```Shell
+conda install pyshp pykdtree cerberus geos==3.8.0 owslib==0.18 matplotlib==3.4.3
+```
+
+Go to this page, scroll down and download the following files:
+`Shapely‑1.8.2‑cp38‑cp38‑win_amd64.whl`
+`pyproj‑3.3.1‑cp38‑cp38‑win_amd64.whl`
+`GDAL‑3.4.3‑cp38‑cp38‑win_amd64.whl`
+`Fiona‑1.8.21‑cp38‑cp38‑win_amd64.whl`
+`numpy‑1.22.4+mkl‑cp38‑cp38‑win_amd64.whl`
+`Pillow‑9.1.1‑cp38‑cp38‑win_amd64.whl`
+`Cartopy‑0.20.2‑cp38‑cp38‑win_amd64.whl`
+
+Navigate to the download folder from a terminal and run:
+```Shell
+pip install Shapely‑1.8.2‑cp38‑cp38‑win_amd64.whl 
+& pip install pyproj‑3.3.1‑cp38‑cp38‑win_amd64.whl 
+& pip install GDAL‑3.4.3‑cp38‑cp38‑win_amd64.whl 
+& pip install Fiona‑1.8.21‑cp38‑cp38‑win_amd64.whl 
+& pip install numpy‑1.22.4+mkl‑cp38‑cp38‑win_amd64.whl 
+& pip instll Pillow‑9.1.1‑cp38‑cp38‑win_amd64.whl
+```
+
+Install Cartopy
+```Shell
+pip install Cartopy‑0.20.2‑cp38‑cp38‑win_amd64.whl
+```
+
 
 ### Linux
 Ubuntu v 22.04
