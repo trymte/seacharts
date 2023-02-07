@@ -1,3 +1,4 @@
+import numpy as np
 import datetime
 import copy
 from simcharts_interfaces.msg import Vessel, Polygon, Point
@@ -54,3 +55,17 @@ def pointlist_to_polygon(pointlist):
         point.y = p[1]
         polygon.points.append(point)
     return polygon
+
+
+def ssa(a, unit='deg'):
+    '''
+    Returns smallest signed angle
+    '''
+    if unit == 'rad':
+        mod = np.abs(a + np.pi) % (2*np.pi) - np.pi
+        a = np.sign(a)*mod
+        return a
+    if unit == 'deg':
+        mod = np.abs(a + 180) % (360) - 180
+        a = np.sign(a)*mod
+        return a

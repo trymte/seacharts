@@ -284,7 +284,12 @@ class FeaturesManager:
         len_path = len(points)
         vessel = self._vessels[id]['ship']
         for i in range(nr_of_shadow_ships):
-            color = _ship_colors['darkgrey']
+            if i == 0:
+                color = _ship_colors['red']
+            elif i == nr_of_shadow_ships-1:
+                color = _ship_colors['green']
+            else:
+                color = _ship_colors['darkgrey']
             if i == nr_of_shadow_ships-1:
                 pose = [
                     points[-1][0],
@@ -333,10 +338,13 @@ class FeaturesManager:
         '''
         updated_vessel = {}
         ship_id = vessel.id
-        pose = [vessel.x, vessel.y, vessel.heading]
-        if (vessel.heading == None): pose[2] = vessel.cog
-        pose[2] = min(359, abs(pose[2]))
-        pose[2] = max(0, abs(pose[2]))
+        pose = [vessel.x, vessel.y, 0]
+        if (vessel.heading == None):
+            # pose[2] = ssa(vessel.cog)
+            pose[2] = vessel.cog
+        else:
+            # pose[2] = ssa(vessel.heading)
+            pose[2] = vessel.heading
         if not self.vessel_changed(ship_id, pose):
             return
         if self.vessel_already_exists(ship_id):

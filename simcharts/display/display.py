@@ -201,9 +201,9 @@ class Display:
             self.features.inputted_paths[id]['path'] = p
             self.features.inputted_paths[id]['color'] = color
 
-            # Update the local traffic object, if there are any associated with the trajectory
+            # Draw a shadow ship if selected
             if self.features.vessel_already_exists(id):
-                self.node.get_logger().debug(f"Ship with id {id} has a path, updating local traffic object")
+                self.node.get_logger().debug(f"Ship with id {id} has a path, Adding shadow ship")
                 self.features.draw_shadow_ships(id, p, nrOfShadows)
 
     def draw_animated_trajectory(self, queue):
