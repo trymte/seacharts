@@ -68,7 +68,7 @@ Remember to add a correct shebang to top of the files serving as entrypoints of 
 `#!/usr/bin/env conda activate simcharts_env`
 
 #### Install ROS 2 Humble
-Install ROS 2 Humble from [here](https://docs.ros.org/en/humble/Installation/Alternatives/Windows-Development-Setup.html), follow the instructions given. This tutorial assumes you installed ROS 2 Humble to `C:\\dev\\ros2_humble`
+Install ROS 2 Humble from [here](https://docs.ros.org/en/humble/Installation/Windows-Install-Binary.html), follow the instructions given. This tutorial assumes you installed ROS 2 Humble to `C:\\dev\\ros2_humble`
 
 Create a workspace directory anywhere, for example `C:\\Users\\'user_name'\\ros2`
 Inside of which, you need to create a folder called `src`
@@ -78,7 +78,7 @@ Install Python 3.8, Pip and Git
 
 Install Cartopy dependencies
 ```Shell
-conda install pyshp pykdtree cerberus geos==3.8.0 owslib==0.18 matplotlib==3.4.3
+conda install pyshp yaml pykdtree cerberus geos==3.8.0 owslib==0.18 matplotlib==3.4.3
 ```
 
 Go to [this](https://www.lfd.uci.edu/~gohlke/pythonlibs/) page, scroll down and download the following files:
@@ -121,7 +121,7 @@ From the root of you ROS 2 workspace directory `C:\\Users\\'user_name'\\ros2` ru
 ```shell
 call C:\dev\ros2_humble\local_setup.bat
 cd "C:\\Users\\'user_name'\\ros2_ws_win"
-colcon build --merge install
+colcon build --merge-install
 call install/local_setup.bat
 ```
 
@@ -135,7 +135,7 @@ call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary
 set RMW_IMPLEMENTATION=rmw_fastrtps_cpp
 ```
 
-
+Note: If you have multiple conda environments for other ros packages, you should activate the correct environment before only building the ROS packages dependant on that environment.
 
 ### Linux
 Ubuntu v 22.04
