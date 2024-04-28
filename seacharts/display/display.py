@@ -374,6 +374,7 @@ class Display:
     def terminate(self):
         if not self._show_figure:
             return
+        self.features.clear_all_features()
         plt.close(self.figure)
         self.figure = None
         self.crs = None
