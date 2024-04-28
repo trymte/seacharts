@@ -26,6 +26,7 @@ class FeaturesManager:
         self._seabeds = {}
         self._land = None
         self._shore = None
+        self._external_artists = []
         self._init_layers()
 
     @property
@@ -85,18 +86,22 @@ class FeaturesManager:
         if head_size is None:
             head_size = 50
         body = spl.Arrow(start=start, end=end, width=buffer).body(head_size)
-        return self.add_overlay(body, color_name, fill, linewidth, linestyle)
+        artist = self.add_overlay(body, color_name, fill, linewidth, linestyle)
+        self._external_artists.append(artist)
+        return artist
 
     def add_circle(self, center, radius, color_name, fill, linewidth, linestyle, alpha):
         geometry = spl.Circle(*center, radius).geometry
-        return self.add_overlay(geometry, color_name, fill, linewidth, linestyle, alpha)
+        artist = self.add_overlay(geometry, color_name, fill, linewidth, linestyle, alpha)
+        self._external_artists.append(artist)
+        return artist
 
     def add_line(self, points, color_name, buffer, linewidth, linestyle, marker_type, marker_size, alpha):
         if buffer is None:
             buffer = 5
         if buffer == 0:
             x_coordinates, y_coordinates = zip(*points)
-            return self._display.axes.plot(
+            artist = self._display.axes.plot(
                 x_coordinates,
                 y_coordinates,
                 color=color_picker(color_name)[0],
@@ -109,12 +114,16 @@ class FeaturesManager:
             )
         else:
             geometry = spl.Line(points=points).geometry.buffer(buffer)
-            return self.add_overlay(geometry, color_name, True, linewidth, linestyle, alpha=alpha)
+            artist = self.add_overlay(geometry, color_name, True, linewidth, linestyle, alpha=alpha)
+        self._external_artists.append(artist)
+        return artist
 
     def add_text(self, text, position, color, size, rotation):
-        return self._display.axes.add_artist(
+        artist = self._display.axes.add_artist(
             Text(position[0], position[1], text, color=color, size=size, rotation=rotation)
         )
+        self._external_artists.append(artist)
+        return artist
 
     def add_polygon(self, shape, color, interiors, fill, linewidth, linestyle, alpha=1.0):
         try:
@@ -126,13 +135,18 @@ class FeaturesManager:
             shape = [shape]
         if isinstance(shape[0], tuple) or isinstance(shape[0], list):
             shape = [shape]
+        artist = None
         for geometry in shape:
             geometry = spl.Area.new_polygon(geometry, interiors)
-            return self.add_overlay(geometry, color, fill, linewidth, linestyle, alpha)
+            artist = self.add_overlay(geometry, color, fill, linewidth, linestyle, alpha)
+            self._external_artists.append(artist)
+        return artist
 
     def add_rectangle(self, center, size, color_name, rotation, fill, linewidth, linestyle, alpha):
         geometry = spl.Rectangle(*center, heading=rotation, width=size[0], height=size[1]).geometry
-        return self.add_overlay(geometry, color_name, fill, linewidth, linestyle, alpha)
+        artist = self.add_overlay(geometry, color_name, fill, linewidth, linestyle, alpha)
+        self._external_artists.append(artist)
+        return artist
 
     def add_overlay(self, geometry, color_name, fill, linewidth, linestyle, alpha=1.0):
         color = color_picker(color_name)
@@ -269,6 +283,45 @@ class FeaturesManager:
             artist.set_visible(not artist.get_visible())
         self.update_vessels()
         self.update_hazards()
+        self._display.update_plot()
+
+    def clear_all_features(self):
+        for features in [
+            self._hazards,
+            self._arrows,
+            self._vessels,
+            self._seabeds,
+            self._shore,
+            self._land,
+            self._external_artists,
+        ]:
+            try:
+                if isinstance(features, dict):
+                    for artist in features.values():
+                        artist.remove()
+                elif isinstance(features, list):
+                    for artist in features:
+                        artist.remove()
+                else:
+                    features.remove()
+            except Exception:
+                pass
+        for path in self._paths:
+            try:
+                if path.artist:
+                    path.artist.remove()
+            except Exception:
+                pass
+        try:
+            if self._ownship:
+                self._ownship.remove()
+        except Exception:
+            pass
+        try:
+            if self._horizon:
+                self._horizon.remove()
+        except Exception:
+            pass
         self._display.update_plot()
 
     def toggle_topography_visibility(self, new_state: bool = None):
