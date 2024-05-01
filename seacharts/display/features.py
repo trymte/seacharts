@@ -322,7 +322,6 @@ class FeaturesManager:
                 self._horizon.remove()
         except Exception:
             pass
-        self._display.update_plot()
 
     def toggle_topography_visibility(self, new_state: bool = None):
         if new_state is None:
