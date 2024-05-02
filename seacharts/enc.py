@@ -1,11 +1,10 @@
 from pathlib import Path
-from typing import Any, List, Tuple, Union
+from typing import Any, List, Optional, Tuple, Union
 
 import matplotlib
 import seacharts.display as dis
 import seacharts.environment as env
 import seacharts.utils as utils
-from cartopy.crs import UTM
 
 matplotlib.rcParams["pdf.fonttype"] = 42
 matplotlib.rcParams["ps.fonttype"] = 42
@@ -196,7 +195,7 @@ class ENC:
         head_size: float = None,
         thickness: float = None,
         edge_style: Union[str, tuple] = None,
-    ) -> None:
+    ):
         """
         Add a straight arrow overlay to the environment plot.
         :param start: tuple of start point coordinate pair
@@ -218,7 +217,7 @@ class ENC:
         color: str,
         size: float = None,
         rotation: float = None,
-    ) -> None:
+    ):
         """
         Add a text overlay to the environment plot.
         :param text: str of text to display
@@ -276,7 +275,9 @@ class ENC:
         :param alpha: float denoting the Matplotlib alpha value
         :return: Featureartist
         """
-        self._display.features.add_line(points, color, buffer, linewidth, edge_style, marker_type, marker_size, alpha)
+        return self._display.features.add_line(
+            points, color, buffer, linewidth, edge_style, marker_type, marker_size, alpha
+        )
 
     def draw_polygon(
         self,
@@ -287,7 +288,7 @@ class ENC:
         thickness: float = None,
         edge_style: Union[str, tuple] = None,
         alpha: float = 1.0,
-    ) -> None:
+    ):
         """
         Add an arbitrary polygon shape overlay to the environment plot.
         :param geometry: Shapely geometry or list of exterior coordinates
@@ -299,7 +300,7 @@ class ENC:
         :param alpha: float denoting the Matplotlib alpha value
         :return: Featureartist
         """
-        self._display.features.add_polygon(geometry, color, interiors, fill, thickness, edge_style, alpha)
+        return self._display.features.add_polygon(geometry, color, interiors, fill, thickness, edge_style, alpha)
 
     def draw_rectangle(
         self,
@@ -324,14 +325,14 @@ class ENC:
         :param alpha: float denoting the Matplotlib alpha value
         :return: Featureartist
         """
-        self._display.features.add_rectangle(center, size, color, rotation, fill, thickness, edge_style, alpha)
+        return self._display.features.add_rectangle(center, size, color, rotation, fill, thickness, edge_style, alpha)
 
-    def start_display(self) -> None:
+    def start_display(self, figname: Optional[str] = None) -> None:
         """
         Start the ENC figure display.
         :return: None
         """
-        self._display.start(self._cfg.settings)
+        self._display.start(self._cfg.settings, figname)
 
     def show_display(self, duration: float = 0.0) -> None:
         """

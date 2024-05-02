@@ -5,7 +5,7 @@ import time
 import tkinter as tk
 from multiprocessing import Process
 from pathlib import Path
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -36,13 +36,13 @@ class Display:
         self._utm_zone = settings["enc"]["utm_zone"]
         self._setup_figure_stuff(settings, **kwargs)
 
-    def _setup_figure_stuff(self, settings: dict, **kwargs) -> None:
+    def _setup_figure_stuff(self, settings: dict, figname: Optional[str] = None, **kwargs) -> None:
         self.figure = None
         if self._show_figure:
             self.crs = UTM(self._utm_zone)
             self._background = None
             self.anchor_index = self._init_anchor_index(settings)
-            self.figure, self.sizes, self.spacing, widths = self._init_figure(settings, **kwargs)
+            self.figure, self.sizes, self.spacing, widths = self._init_figure(settings, figname, **kwargs)
             self.axes, self.grid_spec, self._colorbar = self._init_axes(widths)
             self.events = EventsManager(self)
             self.features = FeaturesManager(self)
@@ -74,12 +74,13 @@ class Display:
             if self.environment is None:
                 self.start_visualization_loop()
 
-    def start(self, settings: dict, **kwargs) -> None:
+    def start(self, settings: dict, figname: Optional[str] = None, **kwargs) -> None:
         """Starts the display, if it is not already started.
         Overrides the show_figure setting if set to false.
 
         Args:
             settings (dict): The ENC settings dictionary.
+            figname (Optional[str]): The name of the figure. Defaults to None.
         """
         if not self._show_figure:
             self._show_figure = True
@@ -87,7 +88,7 @@ class Display:
         if self.is_active:
             return
 
-        self._setup_figure_stuff(settings, **kwargs)
+        self._setup_figure_stuff(settings, figname, **kwargs)
         plt.show(block=False)
 
     def _init_anchor_index(self, settings):
@@ -101,7 +102,7 @@ class Display:
             f"{[o for options in self.window_anchors for o in options]}"
         )
 
-    def _init_figure(self, settings, **kwargs):
+    def _init_figure(self, settings, figname: Optional[str] = None, **kwargs):
         self._fullscreen_mode = settings["display"]["fullscreen_mode"]
         self._colorbar_mode = settings["display"]["colorbar_mode"]
         self._dark_mode = settings["display"]["dark_mode"]
@@ -129,8 +130,9 @@ class Display:
         )
         subplot_spacing = sub1, sub2
 
-        figname = settings["display"]["figname"] if "figname" in settings["display"] else "SeaCharts"
-        figure = plt.figure(num=figname, figsize=figure_sizes[0], dpi=self._dpi)
+        name = settings["display"]["figname"] if "figname" in settings["display"] else "SeaCharts"
+        name = figname if figname is not None else name
+        figure = plt.figure(num=name, figsize=figure_sizes[0], dpi=self._dpi)
         # if not self._fullscreen_mode:
         # figure.canvas.toolbar.pack_forget()
         return figure, figure_sizes, subplot_spacing, axes_widths
