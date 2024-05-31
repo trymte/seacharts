@@ -20,6 +20,7 @@ from .features import FeaturesManager
 
 matplotlib.rcParams["pdf.fonttype"] = 42
 matplotlib.rcParams["ps.fonttype"] = 42
+matplotlib.use("Agg")
 
 
 class Display:
