@@ -9,7 +9,6 @@ matplotlib.rcParams["pdf.fonttype"] = 42
 matplotlib.rcParams["ps.fonttype"] = 42
 matplotlib.use("Agg")
 
-import tkinter as tk
 from multiprocessing import Process
 from pathlib import Path
 from typing import List, Optional, Tuple
@@ -189,7 +188,7 @@ class Display:
         plt.show(block=False)
         try:
             self.figure.canvas.draw()
-        except tk.TclError:
+        except Exception:
             plt.close()
         self._background = self.figure.canvas.copy_from_bbox(self.figure.bbox)
         self.draw_animated_artists()
@@ -203,7 +202,7 @@ class Display:
         try:
             self.figure.canvas.blit()
             self.figure.canvas.flush_events()
-        except tk.TclError:
+        except Exception:
             plt.close()
 
     def toggle_dark_mode(self, state=None):
@@ -254,6 +253,7 @@ class Display:
         j, i = self.anchor_index
         option = self.window_anchors[j][i]
         option = "right"
+        return
         if option != "default":
             root = tk.Tk()
             screen_width = int(root.winfo_screenwidth())
@@ -307,7 +307,7 @@ class Display:
                 bbox_inches=self.figure.bbox_inches,
                 pad_inches=0.0,
             )
-        except tk.TclError:
+        except Exception as e:
             plt.close()
 
     @property
@@ -330,7 +330,7 @@ class Display:
                 self.features.update_hazards()
         try:
             plt.pause(duration)
-        except tk.TclError:
+        except Exception as e:
             plt.close()
 
     def terminate(self):
