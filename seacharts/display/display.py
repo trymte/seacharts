@@ -2,12 +2,18 @@ from __future__ import annotations
 
 import datetime
 import time
+
+import matplotlib
+
+matplotlib.rcParams["pdf.fonttype"] = 42
+matplotlib.rcParams["ps.fonttype"] = 42
+matplotlib.use("Agg")
+
 import tkinter as tk
 from multiprocessing import Process
 from pathlib import Path
 from typing import List, Optional, Tuple
 
-import matplotlib
 import matplotlib.pyplot as plt
 import seacharts.environment as env
 from cartopy.crs import UTM
@@ -17,10 +23,6 @@ from matplotlib_scalebar.scalebar import ScaleBar
 from .colors import colorbar
 from .events import EventsManager
 from .features import FeaturesManager
-
-matplotlib.rcParams["pdf.fonttype"] = 42
-matplotlib.rcParams["ps.fonttype"] = 42
-matplotlib.use("Agg")
 
 
 class Display:
