@@ -2,17 +2,11 @@ from __future__ import annotations
 
 import datetime
 import time
-
-import matplotlib
-
-matplotlib.rcParams["pdf.fonttype"] = 42
-matplotlib.rcParams["ps.fonttype"] = 42
-matplotlib.use("Agg")
-
 from multiprocessing import Process
 from pathlib import Path
 from typing import List, Optional, Tuple
 
+import matplotlib
 import matplotlib.pyplot as plt
 import seacharts.environment as env
 from cartopy.crs import UTM
