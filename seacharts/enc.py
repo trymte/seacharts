@@ -6,8 +6,6 @@ import seacharts.display as dis
 import seacharts.environment as env
 import seacharts.utils as utils
 
-matplotlib.rcParams["pdf.fonttype"] = 42
-matplotlib.rcParams["ps.fonttype"] = 42
 
 
 class ENC:
@@ -37,8 +35,10 @@ class ENC:
     """
 
     def __init__(self, config_file: Path = utils.paths.config, multiprocessing=False, **kwargs):
-        matplotlib.use("TkAgg")
-        # matplotlib.use("Agg")
+        # matplotlib.use("TkAgg")
+        # matplotlib.rcParams["pdf.fonttype"] = 42
+        # matplotlib.rcParams["ps.fonttype"] = 42
+        matplotlib.use("Agg")
         if multiprocessing:
             dis.Display.init_multiprocessing()
             return
