@@ -6,7 +6,6 @@ from multiprocessing import Process
 from pathlib import Path
 from typing import List, Optional, Tuple
 
-import matplotlib
 import matplotlib.pyplot as plt
 import seacharts.environment as env
 from cartopy.crs import UTM
