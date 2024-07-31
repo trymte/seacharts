@@ -6,9 +6,6 @@ import seacharts.display as dis
 import seacharts.environment as env
 import seacharts.utils as utils
 
-matplotlib.rcParams["pdf.fonttype"] = 42
-matplotlib.rcParams["ps.fonttype"] = 42
-
 
 class ENC:
     """Electronic Navigational Charts
