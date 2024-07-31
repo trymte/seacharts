@@ -37,7 +37,7 @@ class ENC:
     """
 
     def __init__(self, config_file: Path = utils.paths.config, multiprocessing=False, **kwargs):
-        matplotlib.use("TkAgg")
+        # matplotlib.use("TkAgg")
         # matplotlib.use("Agg")
         if multiprocessing:
             dis.Display.init_multiprocessing()
