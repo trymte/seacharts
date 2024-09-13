@@ -6,6 +6,7 @@ from multiprocessing import Process
 from pathlib import Path
 from typing import List, Optional, Tuple
 
+import matplotlib
 import matplotlib.pyplot as plt
 import seacharts.environment as env
 from cartopy.crs import UTM
@@ -83,6 +84,7 @@ class Display:
         if self.is_active:
             return
 
+        matplotlib.use("TkAgg")
         self._setup_figure_stuff(settings, figname, **kwargs)
         plt.show(block=False)
 
