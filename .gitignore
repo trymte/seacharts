@@ -9,6 +9,8 @@ __pycache__/
 
 *.zip
 
+reports/
+
 # Distribution / packaging
 .Python
 build/
