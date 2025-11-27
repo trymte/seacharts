@@ -433,7 +433,7 @@ wheels = [
 
 [[package]]
 name = "seacharts"
-version = "0.1.0"
+version = "2.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "cartopy" },
