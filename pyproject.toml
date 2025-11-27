@@ -15,18 +15,18 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
 ]
 license = {file = "LICENSE"}
-requires-python = ">=3.11,<3.12"
+requires-python = ">=3.10,<3.12"
 dependencies = [
-    "cartopy>=0.25.0",
-    "cerberus>=1.3.8",
-    "fiona>=1.10.1",
-    "gdal>=3.12.0.post1",
-    "matplotlib>=3.10.7",
-    "matplotlib-scalebar>=0.9.0",
-    "numpy>=2.3.5",
-    "pyyaml>=6.0.3",
-    "scipy>=1.16.3",
-    "shapely>=2.1.2",
+    "cartopy",
+    "cerberus",
+    "fiona",
+    "gdal<=3.12.0.post1",
+    "matplotlib",
+    "matplotlib-scalebar",
+    "numpy",
+    "pyyaml",
+    "scipy",
+    "shapely",
 ]
 
 [build-system]
