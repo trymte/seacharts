@@ -1,7 +1,7 @@
 # SeaCharts
 Python-based API for Electronic Navigational Charts (ENC)
 
-[![platform](https://img.shields.io/badge/platform-linux-lightgrey)]()
+[![platforms](https://img.shields.io/badge/platform-linux%20%7C%20macOS-lightgrey)]()
 [![python version](https://img.shields.io/badge/python-3.10-blue)]()
 [![python version](https://img.shields.io/badge/python-3.11-blue)]()
 [![license](https://img.shields.io/badge/license-MIT-green)]()
@@ -37,7 +37,7 @@ convention for Python code.
 
 First, ensure that you have gdal and geos libraries installed, as these are required in order to successfully install gdal and cartopy.
 
-### Linux (Virtual Environment)
+### Linux
 
 ```bash
 sudo apt-get install libgeos-dev libgdal-dev
