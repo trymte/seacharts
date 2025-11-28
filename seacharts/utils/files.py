@@ -6,13 +6,15 @@ from pathlib import Path
 from . import paths as path
 
 
-def verify_directory_exists(dir_path) -> None:
-    file_path = Path(dir_path).expanduser()
-    if file_path.is_absolute():
-        full_path = file_path
-    else:
-        full_path = path.external / dir_path
+def resolve_file_path(file_path: str | Path) -> Path:
+    path_obj = Path(file_path).expanduser()
+    if path_obj.is_absolute():
+        return path_obj
+    return path.external / file_path
 
+
+def verify_directory_exists(dir_path) -> None:
+    full_path = resolve_file_path(dir_path)
     if not full_path.is_dir():
         raise FileNotFoundError(f"Folder {dir_path} not found at:\r\n{full_path}.")
 

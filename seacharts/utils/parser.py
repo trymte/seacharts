@@ -1,8 +1,8 @@
 import warnings
-from pathlib import Path
 
 import fiona
 
+from . import files
 from . import paths as path
 
 
@@ -14,11 +14,7 @@ class ShapefileParser:
 
     def read_fgdb(self, label, external_labels, depth):
         for file_name in self.file_names:
-            file_path_obj = Path(file_name).expanduser()
-            if file_path_obj.is_absolute():
-                file_path = file_path_obj
-            else:
-                file_path = path.external / file_name
+            file_path = files.resolve_file_path(file_name)
             records = self._parse_layers(file_path, external_labels, depth)
             yield from self._parse_records(records, label)
 
