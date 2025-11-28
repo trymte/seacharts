@@ -15,6 +15,10 @@ class ShapefileParser:
     def read_fgdb(self, label, external_labels, depth):
         for file_name in self.file_names:
             file_path = files.resolve_file_path(file_name)
+            if not file_path.exists():
+                raise FileNotFoundError(
+                    f"FGDB file {file_name} not found at:\r\n{file_path}."
+                )
             records = self._parse_layers(file_path, external_labels, depth)
             yield from self._parse_records(records, label)
 

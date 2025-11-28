@@ -6,7 +6,6 @@ from typing import List
 import yaml
 from cerberus import Validator
 
-from . import files
 from . import paths as dcp  # default configuratin paths
 
 
@@ -14,7 +13,6 @@ class ENCConfig:
     """Class for maintaining Electronic Navigational Charts configuration settings"""
 
     def __init__(self, config_file_name: Path = dcp.config, **kwargs):
-
         self._schema = read_yaml_into_dict(dcp.config_schema)
         self.validator = Validator(self._schema)
         self._valid_sections = self.extract_valid_sections()
@@ -46,9 +44,6 @@ class ENCConfig:
             raise ValueError(f"Cerberus validation Error: {self.validator.errors}")
 
         self._settings["enc"]["depths"].sort()
-
-        for file_name in self._settings["enc"]["files"]:
-            files.verify_directory_exists(file_name)
 
     def parse(self, file_name=dcp.config) -> None:
         self._settings = read_yaml_into_dict(file_name)
@@ -116,12 +111,20 @@ def validate_key(key, value, v_type, sub_type=None, length=None) -> None:
     """
     if isinstance(value, list) or isinstance(value, tuple):
         if not all([isinstance(v, sub_type) for v in value]):
-            raise ValueError("Invalid input format: " f"'{key}' should be a {v_type.__name__} of {sub_type}.")
+            raise ValueError(
+                "Invalid input format: "
+                f"'{key}' should be a {v_type.__name__} of {sub_type}."
+            )
         if length is not None and len(value) != length:
-            raise ValueError("Invalid input format: " f"'{key}' should be a {v_type.__name__} of length {length}.")
+            raise ValueError(
+                "Invalid input format: "
+                f"'{key}' should be a {v_type.__name__} of length {length}."
+            )
     else:
         if not isinstance(value, v_type):
-            raise ValueError("Invalid input format: " f"'{key}' should have type {v_type}.")
+            raise ValueError(
+                "Invalid input format: " f"'{key}' should have type {v_type}."
+            )
 
 
 # def save(kwargs, file_name) -> None:

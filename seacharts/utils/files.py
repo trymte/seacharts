@@ -13,12 +13,6 @@ def resolve_file_path(file_path: str | Path) -> Path:
     return path.external / file_path
 
 
-def verify_directory_exists(dir_path) -> None:
-    full_path = resolve_file_path(dir_path)
-    if not full_path.is_dir():
-        raise FileNotFoundError(f"Folder {dir_path} not found at:\r\n{full_path}.")
-
-
 def build_directory_structure(features=None) -> None:
     if features is None:
         path.data.mkdir(exist_ok=True)
