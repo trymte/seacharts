@@ -21,23 +21,19 @@ for data_location in data_locations:
         data = data_candidate
         break
 if not data:
-    raise FileNotFoundError(
-        "Data folder not found in any of the following locations: {}".format(
-            set([_.as_posix() for _ in data_locations])
-        )
+    print(
+        f"Data folder not found in any of the following locations: {set([_.as_posix() for _ in data_locations])}"
     )
-external = data / "external"
-shapefiles = data / "shapefiles"
-
-vessels = data / "vessels.csv"
-
-hazards = data / "hazards"
-dynamic = hazards / "dynamic.csv"
-static = hazards / "static.csv"
-
-paths = data / "paths"
-path1 = paths / "path1.csv"
-path2 = paths / "path2.csv"
+if data is not None:
+    external = data / "external"
+    shapefiles = data / "shapefiles"
+    vessels = data / "vessels.csv"
+    hazards = data / "hazards"
+    dynamic = hazards / "dynamic.csv"
+    static = hazards / "static.csv"
+    paths = data / "paths"
+    path1 = paths / "path1.csv"
+    path2 = paths / "path2.csv"
 
 reports = root / "reports"
 frames_dir = reports / "frames"
