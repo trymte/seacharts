@@ -42,13 +42,13 @@ class ENC:
         self, config_file: Path = utils.paths.config, multiprocessing=False, **kwargs
     ):
         system = platform.system()
-        if system == "Linux":
-            matplotlib.use("TkAgg")
-        elif system == "Darwin":  # macOS
-            try:
+        try:
+            if system == "Linux":
+                matplotlib.use("TkAgg")
+            elif system == "Darwin":  # macOS
                 matplotlib.use("MacOSX")
-            except ImportError:
-                matplotlib.use("Agg")
+        except ImportError:
+            matplotlib.use("Agg")
         if multiprocessing:
             dis.Display.init_multiprocessing()
             return
