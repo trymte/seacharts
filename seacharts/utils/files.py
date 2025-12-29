@@ -15,19 +15,19 @@ def resolve_file_path(file_path: str | Path) -> Path:
 
 def build_directory_structure(features=None) -> None:
     if features is None:
-        path.data.mkdir(exist_ok=True)
-        path.reports.mkdir(exist_ok=True)
+        path.data.mkdir(exist_ok=True, parents=True)
+        path.reports.mkdir(exist_ok=True, parents=True)
 
-        path.external.mkdir(exist_ok=True)
-        path.hazards.mkdir(exist_ok=True)
-        path.paths.mkdir(exist_ok=True)
-        path.shapefiles.mkdir(exist_ok=True)
+        path.external.mkdir(exist_ok=True, parents=True)
+        path.hazards.mkdir(exist_ok=True, parents=True)
+        path.paths.mkdir(exist_ok=True, parents=True)
+        path.shapefiles.mkdir(exist_ok=True, parents=True)
 
-        path.vessels.touch(exist_ok=True)
-        path.dynamic.touch(exist_ok=True)
-        path.static.touch(exist_ok=True)
-        path.path1.touch(exist_ok=True)
-        path.path2.touch(exist_ok=True)
+        path.vessels.touch(exist_ok=True, parents=True)
+        path.dynamic.touch(exist_ok=True, parents=True)
+        path.static.touch(exist_ok=True, parents=True)
+        path.path1.touch(exist_ok=True, parents=True)
+        path.path2.touch(exist_ok=True, parents=True)
     else:
         for feature in features:
             shapefile_dir = path.shapefiles / feature.lower()
